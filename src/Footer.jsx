@@ -17,14 +17,14 @@ export default function FootersSimple() {
             >
               Terms of Service
             </a>
-            <Link to="/PrivacyPolicy" target="_blank" rel="noopener noreferrer">
+            <Link to="/privacy-policy"> {/* Ensure the path matches the route */}
               <span className="font-medium text-gray-700 hover:text-gray-950 dark:text-gray-400 dark:hover:text-gray-50">
                 Privacy Policy
               </span>
             </Link>
           </nav>
           <div className="text-gray-500 dark:text-gray-400/80">
-            <span className="font-medium">Hive - Spell Intelligently</span> 
+            <span className="font-medium">Hive - Spell Intelligently</span>
           </div>
         </div>
       </footer>
