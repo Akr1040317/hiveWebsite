@@ -115,7 +115,8 @@ export default function Dashboard() {
               className="group inline-flex items-center gap-2 text-lg font-bold tracking-wide text-gray-100"
             >
               <img
-                src="/src/assets/IconResized.png"
+                src="/IconResized.png
+                "
                 alt="Gathr Logo"
                 className="gathr-logo"
               />
