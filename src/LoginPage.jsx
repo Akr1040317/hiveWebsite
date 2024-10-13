@@ -58,7 +58,7 @@ export default function LoginPage() {
 
   return (
     <div className="login-page-container">
-      <img src="src/assets/IconResized.png" alt="Hive Logo" className="login-logo" /> {/* Updated logo placement */}
+      <img src="/IconResized.png" alt="Hive Logo" className="login-logo" /> {/* Updated logo placement */}
       <h2 className="login-title">Sign in to Hive</h2> {/* Updated title placement */}
       
       <div className="login-card">
