@@ -1,5 +1,6 @@
 import homeImage from './assets/home.png';
 import React from 'react';
+import { Link } from 'react-router-dom'; // Import Link from react-router-dom
 
 export default function Hero() {
   return (
@@ -65,6 +66,21 @@ export default function Hero() {
                 </a>
               </nav>
               <div className="mx-6 hidden h-8 w-px bg-gradient-to-b from-transparent via-gray-300 to-transparent md:block dark:via-gray-700" />
+              {/* Updated Buttons with React Router Links */}
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-3">
+                <Link
+                  to="/login"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 font-semibold leading-6 text-gray-800 hover:border-gray-300 hover:text-gray-900 hover:shadow-sm focus:ring focus:ring-gray-300/25 active:border-gray-200 active:shadow-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:text-gray-200 dark:focus:ring-gray-600/40"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/signup"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#f7971e] bg-[#f7971e] px-4 py-2 font-semibold leading-6 text-white hover:border-[#ffd200] hover:bg-[#ffd200] hover:text-white focus:ring focus:ring-[#ffd200]/50 active:border-[#f7971e] active:bg-[#f7971e] dark:focus:ring-[#ffd200]/90"
+                >
+                  Get Hive Free
+                </Link>
+              </div>
             </div>
           </div>
           {/* END Main Header Content */}
@@ -79,14 +95,13 @@ export default function Hero() {
                 <h1 className="mb-4 text-4xl font-black text-black lg:text-5xl dark:text-white">
                   Spelling made simple with
                   <span className="mx-2 bg-gradient-to-b from-[#FFC801] via-yellow-400 to-yellow-600 bg-clip-text text-transparent">
-                  Hive
+                    Hive
                   </span>
                 </h1>
                 <h2 className="text-lg/relaxed font-medium text-gray-700 lg:text-xl/relaxed dark:text-gray-300">
                   Your ultimate companion for mastering spelling. With 2000 words, 12+ lessons in 8 languages, and 24 quizzes by a Scripps finalist, Hive empowers students with intuitive spelling skills.
                 </h2>
               </div>
-              
             </div>
             <div className="group relative flex items-center justify-center md:col-span-5 md:justify-end">
               <div className="absolute inset-0 rotate-45 rounded-full bg-gradient-to-b from-[#FFC801] via-yellow-400 to-yellow-600 opacity-30 blur-3xl transition group-hover:scale-95" />
