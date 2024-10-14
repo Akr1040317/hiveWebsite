@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore'; // Firestore functions
+import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc, getDoc } from 'firebase/firestore'; // Firestore functions
 import { db, storage } from './firebaseConfig'; // Firebase config
 import { FaUpload, FaDownload, FaPencilAlt, FaCheck, FaTimes, FaTrashAlt } from 'react-icons/fa';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -31,12 +31,32 @@ const [uploadOption, setUploadOption] = useState('append'); // 'append' or 'repl
 const [showSecondModal, setShowSecondModal] = useState(false); // State for the second modal
 const [processedWords, setProcessedWords] = useState([]); // State for holding processed words
 
+const [wordsToSave, setWordsToSave] = useState([]);
+
 const [showImageUploadModal, setShowImageUploadModal] = useState(false);
 const [showImagePreviewModal, setShowImagePreviewModal] = useState(false);
 const [selectedImageFile, setSelectedImageFile] = useState(null);
 const [imagePreviewURL, setImagePreviewURL] = useState(null);
+const [showCreationSuccessModal, setShowCreationSuccessModal] = useState(false);
 
 const [showImageSuccessMessage, setShowImageSuccessMessage] = useState(false);
+
+const [isCreatingQuiz, setIsCreatingQuiz] = useState(false);
+
+const [showDeleteModal, setShowDeleteModal] = useState(false);
+const [showDeleteSuccessModal, setShowDeleteSuccessModal] = useState(false);
+
+
+// Initialize newQuizData with an empty word
+const [newQuizData, setNewQuizData] = useState({
+  quizName: '',
+  type: '',
+  userGroups: [],
+  words: [''], // Start with one empty string
+  image: '',
+  imageFile: null,
+  imagePreviewURL: null,
+});
 
 // Fetch user groups from Firestore
 useEffect(() => {
@@ -80,23 +100,180 @@ useEffect(() => {
     fetchQuizzes();
   }, []);
   
+  const handleAddQuizClick = () => {
+    setIsCreatingQuiz(true);
+    setSelectedQuiz(null);
+  };  
 
   // Handle quiz card click
   const handleCardClick = (quiz) => {
     setSelectedQuiz(quiz);
+    setIsCreatingQuiz(false);
     setUpdatedQuizName(quiz.quizName);
-    setSelectedUserGroups(quiz.userGroups || []); // Initialize selectedUserGroups
-    setEditingWordIndex(null); // Reset editing index when selecting a new quiz
+    setSelectedUserGroups(quiz.userGroups || []);
+    setEditingWordIndex(null);
   };
-  
-  
+
+
 
   const addEmptyWord = () => {
-    setSelectedQuiz((prevQuiz) => {
-      const newWords = [...prevQuiz.words, ''];
-      setEditingWordIndex(newWords.length - 1); // Set to the index of the new word
-      return { ...prevQuiz, words: newWords };
+    if (isCreatingQuiz) {
+      setNewQuizData((prevData) => {
+        const newWords = [...prevData.words, ''];
+        setEditingWordIndex(newWords.length - 1);
+        return { ...prevData, words: newWords };
+      });
+    } else if (selectedQuiz) {
+      setSelectedQuiz((prevQuiz) => {
+        const newWords = [...prevQuiz.words, ''];
+        setEditingWordIndex(newWords.length - 1);
+        return { ...prevQuiz, words: newWords };
+      });
+    }
+  };
+  
+  const createNewQuiz = async () => {
+    const { quizName, type, userGroups, words, imageFile } = newQuizData;
+  
+    if (!quizName || !type || userGroups.length === 0) {
+      alert('Please fill out all required fields.');
+      return;
+    }
+  
+    // Filter out empty words
+    const filteredWords = words.filter((word) => word && word.trim() !== '');
+  
+    if (filteredWords.length === 0) {
+      alert('Please add at least one word to the quiz.');
+      return;
+    }
+  
+    // Check for duplicates
+    const wordCounts = {};
+    const duplicates = [];
+  
+    filteredWords.forEach((word) => {
+      const lowerWord = word.toLowerCase().trim();
+      if (wordCounts[lowerWord]) {
+        wordCounts[lowerWord]++;
+        if (wordCounts[lowerWord] === 2) {
+          duplicates.push(word);
+        }
+      } else {
+        wordCounts[lowerWord] = 1;
+      }
     });
+  
+    if (duplicates.length > 0) {
+      setDuplicatesFound(duplicates);
+      setShowDuplicatePrompt(true);
+      setWordsToSave(filteredWords); // Store the words to process after user decision
+      return; // Wait for user to decide
+    }
+  
+    // Proceed to create quiz without duplicates
+    await proceedToCreateQuiz(filteredWords);
+  };
+  
+  const handleDeleteQuiz = async () => {
+    try {
+      // Delete the quiz document from Firestore
+      const quizDocRef = doc(db, 'Quiz', selectedQuiz.id);
+      await deleteDoc(quizDocRef);
+  
+      // Remove the quiz from the local quizzes state
+      setQuizzes((prevQuizzes) =>
+        prevQuizzes.filter((quiz) => quiz.id !== selectedQuiz.id)
+      );
+  
+      // Reset selectedQuiz and close modals
+      setSelectedQuiz(null);
+      setIsEditingName(false);
+      setIsEditingGroups(false);
+      setEditingWordIndex(null);
+      setShowDeleteModal(false);
+  
+      // Show success modal
+      setShowDeleteSuccessModal(true);
+      // Hide the success modal after 3 seconds
+      setTimeout(() => setShowDeleteSuccessModal(false), 3000);
+  
+      console.log('Quiz deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting quiz:', error);
+      alert('An error occurred while deleting the quiz. Please try again.');
+    }
+  };
+  
+
+  const proceedToCreateQuiz = async (filteredWords) => {
+    try {
+      // Check if a quiz with the same name already exists
+      const quizDocRef = doc(db, 'Quiz', newQuizData.quizName);
+      const quizDoc = await getDoc(quizDocRef);
+      if (quizDoc.exists()) {
+        alert('A quiz with this name already exists. Please choose a different name.');
+        return;
+      }
+  
+      // Prepare quiz data
+      const newQuizDataForFirestore = {
+        quizName: newQuizData.quizName,
+        type: newQuizData.type,
+        userGroups: newQuizData.userGroups,
+        words: filteredWords, // Use the processed words
+        numberOfWords: filteredWords.length,
+        image: '', // We'll update this after uploading the image
+      };
+  
+      // Upload the image if imageFile exists
+      if (newQuizData.imageFile) {
+        const storageRef = ref(storage, `quiz_images/${newQuizData.quizName}.jpg`);
+        await uploadBytes(storageRef, newQuizData.imageFile);
+        const downloadURL = await getDownloadURL(storageRef);
+  
+        // Update the quiz data with the image URL
+        newQuizDataForFirestore.image = downloadURL;
+      }
+  
+      // Create the quiz document in Firestore
+      await setDoc(quizDocRef, newQuizDataForFirestore);
+  
+      // Update the quizzes array
+      setQuizzes((prevQuizzes) => {
+        const updatedQuizzes = [
+          ...prevQuizzes,
+          { id: newQuizData.quizName, ...newQuizDataForFirestore },
+        ];
+        // Sort the updated quizzes array
+        updatedQuizzes.sort((a, b) => a.quizName.localeCompare(b.quizName));
+        return updatedQuizzes;
+      });
+  
+      // Set the selected quiz to the newly created quiz
+      setSelectedQuiz({ id: newQuizData.quizName, ...newQuizDataForFirestore });
+  
+      // Reset the form
+      setNewQuizData({
+        quizName: '',
+        type: '',
+        userGroups: [],
+        words: [],
+        image: '',
+        imageFile: null,
+        imagePreviewURL: null,
+      });
+  
+      setIsCreatingQuiz(false);
+  
+      // Show the success modal
+      setShowCreationSuccessModal(true);
+      // Hide the modal after 3 seconds
+      setTimeout(() => setShowCreationSuccessModal(false), 3000);
+  
+    } catch (error) {
+      console.error('Error creating new quiz:', error);
+    }
   };
   
   const handleImageFileUpload = (event) => {
@@ -147,46 +324,57 @@ useEffect(() => {
   };  
   
   const handleImageUpload = async () => {
-    if (selectedImageFile && selectedQuiz) {
-      try {
-        // Upload the image to Firebase Storage
-        const storageRef = ref(storage, `quiz_images/${selectedQuiz.id}.jpg`);
-  
-        await uploadBytes(storageRef, selectedImageFile);
-  
-        // Get the download URL
-        const downloadURL = await getDownloadURL(storageRef);
-  
-        // Update the quiz's image field in Firestore
-        const quizDocRef = doc(db, 'Quiz', selectedQuiz.id);
-        await updateDoc(quizDocRef, {
-          image: downloadURL,
-        });
-  
-        // Update local state: selectedQuiz
-        setSelectedQuiz((prevQuiz) => ({
-          ...prevQuiz,
-          image: downloadURL,
+    if (selectedImageFile) {
+      if (isCreatingQuiz) {
+        // For new quiz creation, store the image file and preview URL in newQuizData
+        setNewQuizData((prevData) => ({
+          ...prevData,
+          imageFile: selectedImageFile,
+          imagePreviewURL: imagePreviewURL,
         }));
+      } else if (selectedQuiz) {
+        // For existing quiz, upload the image and update Firestore
+        try {
+          // Upload the image to Firebase Storage
+          const storageRef = ref(storage, `quiz_images/${selectedQuiz.id}.jpg`);
   
-        // Update the quizzes array to reflect the new image
-        setQuizzes((prevQuizzes) =>
-          prevQuizzes.map((quiz) =>
-            quiz.id === selectedQuiz.id ? { ...quiz, image: downloadURL } : quiz
-          )
-        );
+          await uploadBytes(storageRef, selectedImageFile);
   
-        setShowImagePreviewModal(false);
+          // Get the download URL
+          const downloadURL = await getDownloadURL(storageRef);
   
-        // Show the success message
-        setShowImageSuccessMessage(true);
-        // Hide the success message after 3 seconds
-        setTimeout(() => setShowImageSuccessMessage(false), 3000);
-      } catch (error) {
-        console.error('Error uploading image:', error);
+          // Update the quiz's image field in Firestore
+          const quizDocRef = doc(db, 'Quiz', selectedQuiz.id);
+          await updateDoc(quizDocRef, {
+            image: downloadURL,
+          });
+  
+          // Update local state: selectedQuiz
+          setSelectedQuiz((prevQuiz) => ({
+            ...prevQuiz,
+            image: downloadURL,
+          }));
+  
+          // Update the quizzes array to reflect the new image
+          setQuizzes((prevQuizzes) =>
+            prevQuizzes.map((quiz) =>
+              quiz.id === selectedQuiz.id ? { ...quiz, image: downloadURL } : quiz
+            )
+          );
+        } catch (error) {
+          console.error('Error uploading image:', error);
+        }
       }
+      // Close the image preview modal
+      setShowImagePreviewModal(false);
+  
+      // Show the success message
+      setShowImageSuccessMessage(true);
+      // Hide the success message after 3 seconds
+      setTimeout(() => setShowImageSuccessMessage(false), 3000);
     }
-  };  
+  };
+  
 
   // Update quiz details in Firestore
   const updateQuizDetails = async () => {
@@ -260,11 +448,31 @@ useEffect(() => {
 
   // Handle word editing
   const handleWordChange = (index, value) => {
-    const updatedWords = [...selectedQuiz.words];
-    updatedWords[index] = value;
-    setSelectedQuiz({ ...selectedQuiz, words: updatedWords });
+    const trimmedValue = value.trim();
+  
+    if (isCreatingQuiz) {
+      const updatedWords = [...newQuizData.words];
+      if (trimmedValue === '') {
+        // Remove the word if it's empty
+        updatedWords.splice(index, 1);
+        setEditingWordIndex(null);
+      } else {
+        updatedWords[index] = trimmedValue;
+      }
+      setNewQuizData({ ...newQuizData, words: updatedWords });
+    } else if (selectedQuiz) {
+      const updatedWords = [...selectedQuiz.words];
+      if (trimmedValue === '') {
+        // Remove the word if it's empty
+        updatedWords.splice(index, 1);
+        setEditingWordIndex(null);
+      } else {
+        updatedWords[index] = trimmedValue;
+      }
+      setSelectedQuiz({ ...selectedQuiz, words: updatedWords });
+    }
   };
-
+  
   // Add a new word when the user presses "Enter" or tabs into the next cell
   useEffect(() => {
     if (editingWordIndex !== null) {
@@ -278,24 +486,34 @@ useEffect(() => {
   // Add a new word when the user presses "Enter" or tabs into the next cell
 // Add a new word when the user presses "Enter" or tabs into the next cell
 const handleKeyDown = (e, index) => {
-    if (e.key === 'Enter' || e.key === 'Tab') {
-      e.preventDefault(); // Prevent default behavior
-  
-      const totalWords = selectedQuiz.words.length;
-      let nextIndex = index + 1;
-  
-      if (nextIndex >= totalWords) {
-        // Add a new word and set editing index
+  if (e.key === 'Enter' || e.key === 'Tab') {
+    e.preventDefault();
+
+    const totalWords = isCreatingQuiz
+      ? newQuizData.words.length
+      : selectedQuiz.words.length;
+    let nextIndex = index + 1;
+
+    if (nextIndex >= totalWords) {
+      // Add a new word and set editing index
+      if (isCreatingQuiz) {
+        setNewQuizData((prevData) => {
+          const newWords = [...prevData.words, ''];
+          setEditingWordIndex(newWords.length - 1);
+          return { ...prevData, words: newWords };
+        });
+      } else if (selectedQuiz) {
         setSelectedQuiz((prevQuiz) => {
           const newWords = [...prevQuiz.words, ''];
-          setEditingWordIndex(newWords.length - 1); // Set to the newly added word
+          setEditingWordIndex(newWords.length - 1);
           return { ...prevQuiz, words: newWords };
         });
-      } else {
-        setEditingWordIndex(nextIndex); // Move to the next word
       }
+    } else {
+      setEditingWordIndex(nextIndex);
     }
-  };
+  }
+};
   
   
   /////////////////////////////////
@@ -347,16 +565,33 @@ const handleFileUpload = (event) => {
   // Handle adding uploaded words
   const handleAddUploadedWords = () => {
     const wordsArray = processedWords.map((word) => word.trim()).filter((word) => word !== '');
-    if (uploadOption === 'append') {
-      // Append words to existing words
-      const newWords = [...selectedQuiz.words, ...wordsArray];
-      setSelectedQuiz((prevQuiz) => ({ ...prevQuiz, words: newWords }));
-    } else if (uploadOption === 'replace') {
-      // Replace existing words with uploaded words
-      setSelectedQuiz((prevQuiz) => ({ ...prevQuiz, words: wordsArray }));
+  
+    if (wordsArray.length === 0) {
+      alert('No valid words were found in the uploaded file.');
+      return;
     }
-    setShowSecondModal(false); // Close the second modal
-  };
+  
+    if (isCreatingQuiz) {
+      // For new quiz creation
+      if (uploadOption === 'append') {
+        const newWords = [...newQuizData.words, ...wordsArray];
+        setNewQuizData((prevData) => ({ ...prevData, words: newWords }));
+      } else if (uploadOption === 'replace') {
+        setNewQuizData((prevData) => ({ ...prevData, words: wordsArray }));
+      }
+    } else if (selectedQuiz) {
+      // For existing quiz editing
+      if (uploadOption === 'append') {
+        const newWords = [...selectedQuiz.words, ...wordsArray];
+        setSelectedQuiz((prevQuiz) => ({ ...prevQuiz, words: newWords }));
+      } else if (uploadOption === 'replace') {
+        setSelectedQuiz((prevQuiz) => ({ ...prevQuiz, words: wordsArray }));
+      }
+    }
+  
+    // Close the modal
+    setShowSecondModal(false);
+  };  
   
   // Handle modal close
   const handleCloseUploadModal = () => {
@@ -368,16 +603,26 @@ const handleFileUpload = (event) => {
   ////////////////////////////////
   // Delete a word from the quiz
   const deleteWord = (index) => {
-    const updatedWords = selectedQuiz.words.filter((_, i) => i !== index);
-    setSelectedQuiz({ ...selectedQuiz, words: updatedWords });
+    if (isCreatingQuiz) {
+      const updatedWords = newQuizData.words.filter((_, i) => i !== index);
+      setNewQuizData({ ...newQuizData, words: updatedWords });
+    } else if (selectedQuiz) {
+      const updatedWords = selectedQuiz.words.filter((_, i) => i !== index);
+      setSelectedQuiz({ ...selectedQuiz, words: updatedWords });
+    }
   };
+  
 
   // Function to save words to Firestore after modification
-  // Function to save words to Firestore after modification and remove empty words
   const saveWords = async () => {
     if (selectedQuiz) {
       // Filter out any undefined or empty words from the array
       const filteredWords = selectedQuiz.words.filter((word) => word && word.trim() !== '');
+  
+      if (filteredWords.length === 0) {
+        alert('The quiz must contain at least one word.');
+        return;
+      }
   
       // Check for duplicates
       const wordCounts = {};
@@ -398,15 +643,16 @@ const handleFileUpload = (event) => {
       if (duplicates.length > 0) {
         setDuplicatesFound(duplicates);
         setShowDuplicatePrompt(true);
+        setWordsToSave(filteredWords); // Store words to process after user decision
         return; // Exit the function until the user makes a decision
       }
   
       // Proceed to save without duplicates
       await saveWordsToFirestore(filteredWords);
     }
-  };
-  
-  
+  };  
+
+
   const saveWordsToFirestore = async (wordsToSave) => {
     const quizDocRef = doc(db, 'Quiz', selectedQuiz.quizName);
     try {
@@ -425,7 +671,7 @@ const handleFileUpload = (event) => {
     } catch (error) {
       console.error('Error updating words:', error);
     }
-  };
+  };  
   
   if (loading) {
     return <p className="text-white">Loading quizzes...</p>;
@@ -435,12 +681,24 @@ const handleFileUpload = (event) => {
     <div className="flex h-screen overflow-hidden">
       {/* Left Section - Scrollable List */}
       <div className="left-section w-1/3 overflow-y-auto h-full p-4">
+      <div
+        className={`bg-[#202020] p-4 rounded-lg mb-4 shadow-lg border border-gray-700 cursor-pointer ${
+          isCreatingQuiz
+            ? 'brightness-150'
+            : 'brightness-100 hover:brightness-125'
+        }`}
+        style={{ transition: '0.3s ease' }}
+        onClick={handleAddQuizClick}
+      >
+        <h2 className="text-xl text-white font-bold text-center">Add Quiz</h2>
+      </div>
+
         {quizzes.length > 0 ? (
           quizzes.map((quiz) => (
             <div
                 key={quiz.id}
-                className={`bg-[#202020] p-4 rounded-lg mb-4 shadow-lg border border-gray-700 ${
-                    selectedQuiz?.id === quiz.id ? 'brightness-125' : 'brightness-100'
+                className={`hover:brightness-125 bg-[#202020] p-4 rounded-lg mb-4 shadow-lg border border-gray-700 ${
+                    selectedQuiz?.id === quiz.id ? 'brightness-150' : 'brightness-100'
                 }`}
                 style={{ transition: '0.3s ease', cursor: 'pointer' }}
                 onClick={() => handleCardClick(quiz)}
@@ -464,101 +722,43 @@ const handleFileUpload = (event) => {
       </div>
 
       {/* Right Section - Detailed Info */}
-      <div className="right-section w-2/3 bg-[#202020] p-6 rounded-lg ml-4 h-full overflow-y-auto">
-        {selectedQuiz ? (
-          <>
+<div className="right-section w-2/3 bg-[#202020] p-6 rounded-lg ml-4 h-full overflow-y-auto">
+  {isCreatingQuiz ? (
+    // Render the create new quiz form
+    <>
+      <h2 className="text-2xl text-white mb-4">Create New Quiz</h2>
 
-            {/* Editable Quiz Name with Buttons */}
-            <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-2xl text-white relative group flex items-center">
-                    {isEditingName ? (
-                    <span className="flex items-center">
-                        <input
-                        className="bg-[#202020] text-white font-bold border-none outline-none"
-                        value={updatedQuizName}
-                        onChange={(e) => setUpdatedQuizName(e.target.value)}
-                        style={{ width: 'auto', backgroundColor: 'transparent' }}
-                        />
-                        <FaCheck
-                        className="ml-2 text-gray-500 cursor-pointer hover:text-[#ffa500] transition-colors duration-200"
-                        onClick={updateQuizDetails}
-                        />
-                        <FaTimes
-                        className="ml-2 text-gray-500 cursor-pointer hover:text-[#ffa500] transition-colors duration-200"
-                        onClick={() => setIsEditingName(false)}
-                        />
-                    </span>
-                    ) : (
-                    <span className="flex items-center">
-                        {selectedQuiz.quizName}
-                        <FaPencilAlt
-                        className="ml-1 text-gray-500 hover:text-white cursor-pointer text-xs opacity-70 group-hover:opacity-100 transition-opacity duration-200"
-                        onClick={() => setIsEditingName(true)}
-                        style={{ display: 'inline', marginLeft: '5px', position: 'relative', top: '-2px' }}
-                        />
-                    </span>
-                    )}
-                </h2>
+      {/* Quiz Name Input */}
+      <div className="mb-4">
+        <label className="block text-white mb-2">Quiz Name:</label>
+        <input
+          type="text"
+          className="bg-[#303030] text-white w-full p-2 rounded"
+          value={newQuizData.quizName}
+          onChange={(e) =>
+            setNewQuizData({ ...newQuizData, quizName: e.target.value })
+          }
+        />
+      </div>
 
-                {/* Icon Buttons */}
-                <div className="flex space-x-2">
-                    {/* Image Upload Button with Tooltip */}
-                    <div className="relative group">
-                    <button
-                        className="text-white p-2 rounded-lg hover:bg-[#ffa500] transition-colors duration-200"
-                        onClick={() => setShowImageUploadModal(true)}
-                    >
-                        <FaImage className="text-xl" />
-                    </button>
-                    <div className="absolute right-0 mt-2 w-max bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        Change Image
-                    </div>
-                    </div>
+      {/* Quiz Type Dropdown */}
+      <div className="mb-4">
+        <label className="block text-white mb-2">Quiz Type:</label>
+        <select
+          className="bg-[#303030] text-white w-full p-2 rounded"
+          value={newQuizData.type}
+          onChange={(e) => setNewQuizData({ ...newQuizData, type: e.target.value })}
+        >
+          <option value="">Select a quiz type</option>
+          <option value="spelling">Spelling</option>
+          <option value="roots">Roots</option>
+          <option value="vocabulary">Vocabulary</option>
+        </select>
+      </div>
 
-                    {/* Upload CSV Button with Tooltip */}
-                    <div className="relative group">
-                    <button
-                        className="text-white p-2 rounded-lg hover:bg-[#ffa500] transition-colors duration-200"
-                        onClick={handleUploadCSVClick}
-                    >
-                        <FaUpload className="text-xl" />
-                    </button>
-                    <div className="absolute right-0 mt-2 w-max bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        Upload Words
-                    </div>
-                    </div>
-
-                    {/* Download CSV Button with Tooltip */}
-                    <div className="relative group">
-                    <button
-                        className="text-white p-2 rounded-lg hover:bg-[#ffa500] transition-colors duration-200"
-                        onClick={handleDownloadCSVClick}
-                    >
-                        <FaDownload className="text-xl" />
-                    </button>
-                    <div className="absolute right-0 mt-2 w-max bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        Download Words
-                    </div>
-                    </div>
-                </div>
-            </div>
-
-            {showImageSuccessMessage && (
-            <div className="text-green-500 mt-2">
-                Image updated successfully!
-            </div>
-            )}
-
-            {/* Quiz Details */}
-            <p className="text-gray-400 mb-2">Type: {selectedQuiz.type}</p>
-            <p className="text-gray-400 mb-2">Number of Words: {selectedQuiz.words.length}</p>
-
-            {/* Editable User Groups */}
-            <div className="mb-4 relative group">
-  <p className="text-gray-400 mb-2 flex items-center">
-    User Groups:{' '}
-    {isEditingGroups ? (
-      <>
+      {/* User Groups Selection */}
+      <div className="mb-4">
+        <label className="block text-white mb-2">User Groups:</label>
         <div style={{ width: '300px' }}>
           <Select
             isMulti
@@ -567,16 +767,18 @@ const handleFileUpload = (event) => {
               ...allUserGroups.map((group) => ({ value: group, label: group })),
             ]}
             value={
-              selectedUserGroups.length === allUserGroups.length
+              newQuizData.userGroups.length === allUserGroups.length
                 ? [{ value: 'select_all', label: 'Select All' }]
-                : selectedUserGroups.map((group) => ({ value: group, label: group }))
+                : newQuizData.userGroups.map((group) => ({ value: group, label: group }))
             }
             onChange={(selectedOptions) => {
               if (selectedOptions.some((option) => option.value === 'select_all')) {
-                // If 'Select All' is selected, select all user groups
-                setSelectedUserGroups(allUserGroups);
+                setNewQuizData({ ...newQuizData, userGroups: allUserGroups });
               } else {
-                setSelectedUserGroups(selectedOptions.map((option) => option.value));
+                setNewQuizData({
+                  ...newQuizData,
+                  userGroups: selectedOptions.map((option) => option.value),
+                });
               }
             }}
             placeholder="Select user groups..."
@@ -615,191 +817,493 @@ const handleFileUpload = (event) => {
             }}
           />
         </div>
-        <FaCheck
-          className="ml-2 text-gray-500 cursor-pointer hover:text-[#ffa500] transition-colors duration-200"
-          onClick={() => {
-            updateQuizDetails();
-            setIsEditingGroups(false);
-          }}
-        />
-        <FaTimes
-          className="ml-2 text-gray-500 cursor-pointer hover:text-[#ffa500] transition-colors duration-200"
-          onClick={() => setIsEditingGroups(false)}
-        />
-      </>
-    ) : (
-      <>
-        {selectedQuiz.userGroups.join(', ')}
-        <FaPencilAlt
-          className="ml-1 text-gray-500 hover:text-white cursor-pointer text-xs opacity-70 group-hover:opacity-100 transition-opacity duration-200"
-          onClick={() => setIsEditingGroups(true)}
-          style={{ display: 'inline', marginLeft: '5px', position: 'relative', top: '-2px' }}
-        />
-      </>
-    )}
-  </p>
-</div>
+      </div>
 
-
-            {/* Editable Words Table */}
-            <table className="w-full text-left mt-4 border-collapse">
-                <tbody>
-                    {selectedQuiz.words.map((word, index) => (
-                    index % 3 === 0 ? (
-                        <tr key={index}>
-                        {[0, 1, 2].map((i) => (
-                            <td
-                            key={i}
-                            className="border border-gray-500 text-gray-300 px-2 py-1 relative"
-                            style={{
-                                minWidth: '200px',
-                                maxWidth: '200px',
-                                whiteSpace: 'nowrap',
-                                boxSizing: 'border-box',
-                            }}
-                            onClick={() => setEditingWordIndex(index + i)} // Set editing index on click
-                            >
-                            {editingWordIndex === index + i ? (
-                                <>
-                                <input
-                                    id={`word-input-${index + i}`} // Unique id for each input
-                                    className="bg-transparent text-white outline-none"
-                                    value={selectedQuiz.words[index + i] || ''}
-                                    onChange={(e) => handleWordChange(index + i, e.target.value)}
-                                    onKeyDown={(e) => handleKeyDown(e, index + i)} // Call handleKeyDown
-                                    style={{
-                                    border: 'none',
-                                    padding: '0',
-                                    boxShadow: 'none',
-                                    appearance: 'none',
-                                    backgroundColor: 'transparent',
-                                    width: 'calc(100% - 20px)',
-                                    }}
-                                />
-                                <FaTrashAlt
-                                    className="ml-1 text-gray-500 hover:text-red-500 cursor-pointer transition-colors duration-200"
-                                    onClick={() => deleteWord(index + i)}
-                                    style={{
-                                    position: 'absolute',
-                                    right: '5px',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    fontSize: '0.8em',
-                                    }}
-                                />
-                                </>
-                            ) : (
-                                <>
-                                {`${index + i + 1}. ${selectedQuiz.words[index + i] || ''}`}
-                                <FaTrashAlt
-                                    className="ml-1 text-gray-500 hover:text-red-500 cursor-pointer transition-colors duration-200"
-                                    onClick={() => deleteWord(index + i)}
-                                    style={{
-                                    position: 'absolute',
-                                    right: '5px',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    fontSize: '0.8em',
-                                    visibility: 'hidden', // Hide delete icon when not editing
-                                    }}
-                                />
-                                </>
-                            )}
-                            </td>
-                        ))}
-                        </tr>
-                    ) : null
-                    ))}
-                </tbody>
-                </table>
-
-
-
-            {/* Save Changes */}
-            {/* Add Word and Save Changes Buttons */}
-            <div className="flex space-x-4 mt-4">
-            <button
-                className="bg-[#ffa500] text-white px-4 py-2 rounded-lg hover:bg-[#ff9f00]"
-                onClick={addEmptyWord} // On-click event to add a new empty word
-            >
-                Add Word
-            </button>
-
-            <button
-                className="bg-[#ffa500] text-white px-4 py-2 rounded-lg hover:bg-[#ff9f00]"
-                onClick={saveWords}
-            >
-                Save Changes
-            </button>
-            </div>
-
-            {showSuccessMessage && (
-            <div className="text-green-500 mt-2">
-                Changes updated successfully!
-            </div>
-            )}
-
-{showDuplicatePrompt && (
-  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-    <div className="bg-[#202020] p-6 rounded-lg">
-      <h3 className="text-white text-lg font-bold mb-4">
-        Duplicate Words Detected
-      </h3>
-      <p className="text-gray-300 mb-4">
-        The following words are duplicated: {duplicatesFound.join(', ')}. Do you
-        want to keep the duplicates?
-      </p>
-      <div className="flex justify-end space-x-4">
+      {/* Image Upload */}
+      <div className="mb-4">
+        <label className="block text-white mb-2">Quiz Image:</label>
+        {newQuizData.imagePreviewURL ? (
+          <img src={newQuizData.imagePreviewURL} alt="Quiz" className="mb-4" />
+        ) : (
+          <p className="text-gray-400 mb-2">No image selected.</p>
+        )}
+        {/* Image Upload Button */}
         <button
-          className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
-          onClick={async () => {
-            // Recompute filteredWords
-            const filteredWords = selectedQuiz.words.filter(
-              (word) => word && word.trim() !== ''
-            );
-
-            // Remove duplicates
-            const uniqueWordsMap = new Map();
-            filteredWords.forEach((word) => {
-              const lowerWord = word.toLowerCase().trim();
-              if (!uniqueWordsMap.has(lowerWord)) {
-                uniqueWordsMap.set(lowerWord, word);
-              }
-            });
-            const uniqueWords = Array.from(uniqueWordsMap.values());
-
-            await saveWordsToFirestore(uniqueWords);
-            setShowDuplicatePrompt(false);
-          }}
+          className="bg-[#ffa500] text-white px-4 py-2 rounded-lg hover:bg-[#ff9f00]"
+          onClick={() => setShowImageUploadModal(true)}
         >
-          No, Remove Duplicates
+          Upload Image
         </button>
-        <button
-          className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
-          onClick={async () => {
-            // Recompute filteredWords
-            const filteredWords = selectedQuiz.words.filter(
-              (word) => word && word.trim() !== ''
-            );
-
-            // Keep duplicates
-            await saveWordsToFirestore(filteredWords);
-            setShowDuplicatePrompt(false);
-          }}
-        >
-          Yes, Keep Duplicates
-        </button>
+      </div>
+      <div className="mb-4 flex items-center justify-between">
+      <h3 className="block text-white mb-2">Quiz Words:</h3>
+      <div className="flex space-x-2">
+    {/* Upload CSV Button with Tooltip */}
+    <div className="relative group">
+      <button
+        className="text-white p-2 rounded-lg hover:bg-[#ffa500] transition-colors duration-200"
+        onClick={handleUploadCSVClick}
+      >
+        <FaUpload className="text-xl" />
+      </button>
+      <div className="absolute right-0 mt-2 w-max bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        Upload Words
+      </div>
+    </div>
+    {/* Add Word Button with Tooltip */}
+    <div className="relative group">
+      <button
+        className="text-white p-2 rounded-lg hover:bg-[#ffa500] transition-colors duration-200"
+        onClick={addEmptyWord}
+      >
+        <FaPencilAlt className="text-xl" />
+      </button>
+      <div className="absolute right-0 mt-2 w-max bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        Add Word
       </div>
     </div>
   </div>
-)}
+    </div>
+      {/* Words Table */}
+      <table className="w-full text-left mt-4 border-collapse">
+        <tbody>
+          {newQuizData.words.map((word, index) => (
+            index % 3 === 0 ? (
+              <tr key={index}>
+                {[0, 1, 2].map((i) => (
+                  <td
+                    key={i}
+                    className="border border-gray-500 text-gray-300 px-2 py-1 relative"
+                    style={{
+                      minWidth: '200px',
+                      maxWidth: '200px',
+                      whiteSpace: 'nowrap',
+                      boxSizing: 'border-box',
+                    }}
+                    onClick={() => setEditingWordIndex(index + i)}
+                  >
+                    {editingWordIndex === index + i ? (
+                      <>
+                        <input
+                          id={`word-input-${index + i}`}
+                          className="bg-transparent text-white outline-none"
+                          value={newQuizData.words[index + i] || ''}
+                          onChange={(e) => handleWordChange(index + i, e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, index + i)}
+                          style={{
+                            border: 'none',
+                            padding: '0',
+                            boxShadow: 'none',
+                            appearance: 'none',
+                            backgroundColor: 'transparent',
+                            width: 'calc(100% - 20px)',
+                          }}
+                        />
+                        <FaTrashAlt
+                          className="ml-1 text-gray-500 hover:text-red-500 cursor-pointer transition-colors duration-200"
+                          onClick={() => deleteWord(index + i)}
+                          style={{
+                            position: 'absolute',
+                            right: '5px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            fontSize: '0.8em',
+                          }}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        {newQuizData.words[index + i] !== undefined ? (
+                          <>
+                            {`${index + i + 1}. ${newQuizData.words[index + i]}`}
+                            <FaTrashAlt
+                              className="ml-1 text-gray-500 hover:text-red-500 cursor-pointer transition-colors duration-200"
+                              onClick={() => deleteWord(index + i)}
+                              style={{
+                                position: 'absolute',
+                                right: '5px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                fontSize: '0.8em',
+                                visibility: 'hidden',
+                              }}
+                            />
+                          </>
+                        ) : null}
+                      </>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ) : null
+          ))}
+        </tbody>
+      </table>
 
-
-          </>
-        ) : (
-          <h2 className="text-2xl text-white mb-4">Select a Quiz for More Details</h2>
-        )}
+      {/* Add Word and Create Quiz Buttons */}
+      <div className="flex space-x-4 mt-4">
+        <button
+          className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+          onClick={createNewQuiz}
+        >
+          Create Quiz
+        </button>
       </div>
+
+      {showSuccessMessage && (
+        <div className="text-green-500 mt-2">
+          Quiz created successfully!
+        </div>
+      )}
+    </>
+  ) : selectedQuiz ? (
+    <>
+      {/* Your existing code for displaying selected quiz details */}
+      
+      {/* Editable Quiz Name with Buttons */}
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-2xl text-white relative group flex items-center">
+          {isEditingName ? (
+            <span className="flex items-center">
+              <input
+                className="bg-[#202020] text-white font-bold border-none outline-none"
+                value={updatedQuizName}
+                onChange={(e) => setUpdatedQuizName(e.target.value)}
+                style={{ width: 'auto', backgroundColor: 'transparent' }}
+              />
+              <FaCheck
+                className="ml-2 text-gray-500 cursor-pointer hover:text-[#ffa500] transition-colors duration-200"
+                onClick={updateQuizDetails}
+              />
+              <FaTimes
+                className="ml-2 text-gray-500 cursor-pointer hover:text-[#ffa500] transition-colors duration-200"
+                onClick={() => setIsEditingName(false)}
+              />
+            </span>
+          ) : (
+            <span className="flex items-center">
+              {selectedQuiz.quizName}
+              <FaPencilAlt
+                className="ml-1 text-gray-500 hover:text-white cursor-pointer text-xs opacity-70 group-hover:opacity-100 transition-opacity duration-200"
+                onClick={() => setIsEditingName(true)}
+                style={{ display: 'inline', marginLeft: '5px', position: 'relative', top: '-2px' }}
+              />
+            </span>
+          )}
+        </h2>
+
+        {/* Icon Buttons */}
+        <div className="flex space-x-2">
+          {/* Image Upload Button with Tooltip */}
+          <div className="relative group">
+            <button
+              className="text-white p-2 rounded-lg hover:bg-[#ffa500] transition-colors duration-200"
+              onClick={() => setShowImageUploadModal(true)}
+            >
+              <FaImage className="text-xl" />
+            </button>
+            <div className="absolute right-0 mt-2 w-max bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              Change Image
+            </div>
+          </div>
+
+          {/* Upload CSV Button with Tooltip */}
+          <div className="relative group">
+            <button
+              className="text-white p-2 rounded-lg hover:bg-[#ffa500] transition-colors duration-200"
+              onClick={handleUploadCSVClick}
+            >
+              <FaUpload className="text-xl" />
+            </button>
+            <div className="absolute right-0 mt-2 w-max bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              Upload Words
+            </div>
+          </div>
+
+          {/* Download CSV Button with Tooltip */}
+          <div className="relative group">
+            <button
+              className="text-white p-2 rounded-lg hover:bg-[#ffa500] transition-colors duration-200"
+              onClick={handleDownloadCSVClick}
+            >
+              <FaDownload className="text-xl" />
+            </button>
+            <div className="absolute right-0 mt-2 w-max bg-gray-800 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              Download Words
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {showImageSuccessMessage && (
+        <div className="text-green-500 mt-2">
+          Image updated successfully!
+        </div>
+      )}
+
+      {/* Quiz Details */}
+      <p className="text-gray-400 mb-2">Type: {selectedQuiz.type}</p>
+      <p className="text-gray-400 mb-2">Number of Words: {selectedQuiz.words.length}</p>
+
+      {/* Editable User Groups */}
+      <div className="mb-4 relative group">
+        <p className="text-gray-400 mb-2 flex items-center">
+          User Groups:{' '}
+          {isEditingGroups ? (
+            <>
+              <div style={{ width: '300px' }}>
+                <Select
+                  isMulti
+                  options={[
+                    { value: 'select_all', label: 'Select All' },
+                    ...allUserGroups.map((group) => ({ value: group, label: group })),
+                  ]}
+                  value={
+                    selectedUserGroups.length === allUserGroups.length
+                      ? [{ value: 'select_all', label: 'Select All' }]
+                      : selectedUserGroups.map((group) => ({ value: group, label: group }))
+                  }
+                  onChange={(selectedOptions) => {
+                    if (selectedOptions.some((option) => option.value === 'select_all')) {
+                      setSelectedUserGroups(allUserGroups);
+                    } else {
+                      setSelectedUserGroups(selectedOptions.map((option) => option.value));
+                    }
+                  }}
+                  placeholder="Select user groups..."
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      backgroundColor: '#202020',
+                      borderColor: '#555',
+                      color: 'white',
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      backgroundColor: '#202020',
+                    }),
+                    option: (base, state) => ({
+                      ...base,
+                      backgroundColor: state.isSelected ? '#ffa500' : '#202020',
+                      color: 'white',
+                      ':hover': {
+                        backgroundColor: '#ffa500',
+                      },
+                    }),
+                    multiValue: (base) => ({
+                      ...base,
+                      backgroundColor: '#ffa500',
+                      color: 'white',
+                    }),
+                    input: (base) => ({
+                      ...base,
+                      color: 'white',
+                    }),
+                    singleValue: (base) => ({
+                      ...base,
+                      color: 'white',
+                    }),
+                  }}
+                />
+              </div>
+              <FaCheck
+                className="ml-2 text-gray-500 cursor-pointer hover:text-[#ffa500] transition-colors duration-200"
+                onClick={() => {
+                  updateQuizDetails();
+                  setIsEditingGroups(false);
+                }}
+              />
+              <FaTimes
+                className="ml-2 text-gray-500 cursor-pointer hover:text-[#ffa500] transition-colors duration-200"
+                onClick={() => setIsEditingGroups(false)}
+              />
+            </>
+          ) : (
+            <>
+              {selectedQuiz.userGroups.join(', ')}
+              <FaPencilAlt
+                className="ml-1 text-gray-500 hover:text-white cursor-pointer text-xs opacity-70 group-hover:opacity-100 transition-opacity duration-200"
+                onClick={() => setIsEditingGroups(true)}
+                style={{ display: 'inline', marginLeft: '5px', position: 'relative', top: '-2px' }}
+              />
+            </>
+          )}
+        </p>
+      </div>
+
+      {/* Editable Words Table */}
+      <table className="w-full text-left mt-4 border-collapse">
+        <tbody>
+          {selectedQuiz.words.map((word, index) => (
+            index % 3 === 0 ? (
+              <tr key={index}>
+                {[0, 1, 2].map((i) => (
+                  <td
+                    key={i}
+                    className="border border-gray-500 text-gray-300 px-2 py-1 relative"
+                    style={{
+                      minWidth: '200px',
+                      maxWidth: '200px',
+                      whiteSpace: 'nowrap',
+                      boxSizing: 'border-box',
+                    }}
+                    onClick={() => setEditingWordIndex(index + i)} // Set editing index on click
+                  >
+                    {editingWordIndex === index + i ? (
+                      <>
+                        <input
+                          id={`word-input-${index + i}`} // Unique id for each input
+                          className="bg-transparent text-white outline-none"
+                          value={selectedQuiz.words[index + i] || ''}
+                          onChange={(e) => handleWordChange(index + i, e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, index + i)} // Call handleKeyDown
+                          style={{
+                            border: 'none',
+                            padding: '0',
+                            boxShadow: 'none',
+                            appearance: 'none',
+                            backgroundColor: 'transparent',
+                            width: 'calc(100% - 20px)',
+                          }}
+                        />
+                        <FaTrashAlt
+                          className="ml-1 text-gray-500 hover:text-red-500 cursor-pointer transition-colors duration-200"
+                          onClick={() => deleteWord(index + i)}
+                          style={{
+                            position: 'absolute',
+                            right: '5px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            fontSize: '0.8em',
+                          }}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        {selectedQuiz.words[index + i] !== undefined ? (
+                          <>
+                            {`${index + i + 1}. ${selectedQuiz.words[index + i]}`}
+                            <FaTrashAlt
+                              className="ml-1 text-gray-500 hover:text-red-500 cursor-pointer transition-colors duration-200"
+                              onClick={() => deleteWord(index + i)}
+                              style={{
+                                position: 'absolute',
+                                right: '5px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                fontSize: '0.8em',
+                                visibility: 'hidden',
+                              }}
+                            />
+                          </>
+                        ) : null}
+                      </>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ) : null
+          ))}
+        </tbody>
+      </table>
+
+      {/* Add Word and Save Changes Buttons */}
+      <div className="flex justify-between items-center mt-4">
+        {/* Left-aligned buttons */}
+        <div className="flex space-x-4">
+          <button
+            className="bg-[#ffa500] text-white px-4 py-2 rounded-lg hover:bg-[#ff9f00]"
+            onClick={addEmptyWord}
+          >
+            Add Word
+          </button>
+
+          <button
+            className="bg-[#ffa500] text-white px-4 py-2 rounded-lg hover:bg-[#ff9f00]"
+            onClick={saveWords}
+          >
+            Save Changes
+          </button>
+        </div>
+
+        {/* Right-aligned Delete Quiz Button */}
+        <button
+          className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+          onClick={() => setShowDeleteModal(true)}
+        >
+          Delete Quiz
+        </button>
+      </div>
+
+      {showSuccessMessage && (
+        <div className="text-green-500 mt-2">
+          Changes updated successfully!
+        </div>
+      )}
+
+    </>
+  ) : (
+    <h2 className="text-2xl text-white mb-4">Select a Quiz for More Details</h2>
+  )}
+</div>
+
+      {/* Place the duplicate prompt modal here */}
+    {showDuplicatePrompt && (
+      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="bg-[#202020] p-6 rounded-lg">
+          <h3 className="text-white text-lg font-bold mb-4">
+            Duplicate Words Detected
+          </h3>
+          <p className="text-gray-300 mb-4">
+            The following words are duplicated: {duplicatesFound.join(', ')}. Do you
+            want to keep the duplicates?
+          </p>
+          <div className="flex justify-end space-x-4">
+            <button
+              className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+              onClick={async () => {
+                // Remove duplicates
+                const uniqueWordsMap = new Map();
+                wordsToSave.forEach((word) => {
+                  const lowerWord = word.toLowerCase().trim();
+                  if (!uniqueWordsMap.has(lowerWord)) {
+                    uniqueWordsMap.set(lowerWord, word);
+                  }
+                });
+                const uniqueWords = Array.from(uniqueWordsMap.values());
+
+                if (isCreatingQuiz) {
+                  // Proceed to create quiz without duplicates
+                  await proceedToCreateQuiz(uniqueWords);
+                } else {
+                  // For editing existing quiz
+                  await saveWordsToFirestore(uniqueWords);
+                }
+                setShowDuplicatePrompt(false);
+              }}
+            >
+              No, Remove Duplicates
+            </button>
+            <button
+              className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+              onClick={async () => {
+                if (isCreatingQuiz) {
+                  // Proceed to create quiz with duplicates
+                  await proceedToCreateQuiz(wordsToSave);
+                } else {
+                  // For editing existing quiz
+                  await saveWordsToFirestore(wordsToSave);
+                }
+                setShowDuplicatePrompt(false);
+              }}
+            >
+              Yes, Keep Duplicates
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
         {showUploadModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
                 <div className="bg-[#202020] text-white p-6 rounded-lg w-1/2">
@@ -1005,7 +1509,64 @@ const handleFileUpload = (event) => {
             </div>
             )}
 
+            {showCreationSuccessModal && (
+              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                <div className="bg-green-500 p-6 rounded-lg">
+                  <h3 className="text-white text-lg font-bold mb-4">
+                    Quiz Created Successfully!
+                  </h3>
+                </div>
+              </div>
+            )}
 
+            {showDeleteModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+                <div className="bg-[#202020] p-6 rounded-lg w-1/2">
+                  {/* Header with Close Button */}
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-white text-lg font-bold">Confirm Delete Quiz</h3>
+                    <button
+                      onClick={() => setShowDeleteModal(false)}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      &times;
+                    </button>
+                  </div>
+
+                  {/* Warning Message */}
+                  <p className="text-gray-300 mb-6">
+                    Are you sure you want to delete the quiz "<strong>{selectedQuiz.quizName}</strong>"?
+                    This action <span className="text-red-500">cannot be reversed</span>.
+                  </p>
+
+                  {/* Buttons */}
+                  <div className="flex justify-end space-x-4">
+                    <button
+                      className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                      onClick={() => setShowDeleteModal(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+                      onClick={handleDeleteQuiz}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {showDeleteSuccessModal && (
+              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                <div className="bg-green-500 p-6 rounded-lg">
+                  <h3 className="text-white text-lg font-bold mb-4">
+                    Quiz Deleted Successfully!
+                  </h3>
+                </div>
+              </div>
+)}
 
     </div>
   );
