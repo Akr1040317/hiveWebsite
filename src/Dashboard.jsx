@@ -16,6 +16,8 @@ import {
 import { useNavigate } from "react-router-dom"; // Import useNavigate from react-router-dom
 import "./Dashboard.css";
 import QuizManagement from './QuizManagement';
+import LessonManagement from './LessonManagement';
+
 
 // Mode0: Your original welcome page content
 const Mode0 = () => (
@@ -157,7 +159,12 @@ export default function Dashboard() {
                     </a>
                     <a
                       href="#"
-                      className="group flex items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-gray-300 hover:bg-[#ffa500]/10 hover:shadow-[0_0_10px_#ffa500]"
+                      className={`group flex items-center gap-2 rounded-lg px-2.5 text-sm font-medium ${
+                        activeView === "lessonManagement"
+                          ? "bg-[#303030] text-white"
+                          : "text-gray-300 hover:bg-[#ffa500]/10 hover:shadow-[0_0_10px_#ffa500]"
+                      }`}
+                      onClick={() => setActiveView("lessonManagement")}
                     >
                       <FaBookOpen className="icon" />
                       <span className="grow py-2">Lesson Management</span>
@@ -241,9 +248,13 @@ export default function Dashboard() {
           <div className="mx-auto w-full max-w-10xl p-4 lg:p-8">
             {/* Conditionally Render Content */}
             {activeView === "dashboard" ? (
-              <Mode0 /> // Render Mode0 (Welcome Page)
+              <Mode0 /> // Render Welcome Page
+            ) : activeView === "quizManagement" ? (
+              <QuizManagement /> // Render Quiz Management
+            ) : activeView === "lessonManagement" ? (
+              <LessonManagement /> // Render Lesson Management
             ) : (
-              <QuizManagement /> // Render QuizManagement (Mode1)
+              <Mode0 /> // Default to Welcome Page if no match
             )}
           </div>
         </div>

@@ -682,7 +682,7 @@ const handleFileUpload = (event) => {
       {/* Left Section - Scrollable List */}
       <div className="left-section w-1/3 overflow-y-auto h-full p-4">
       <div
-        className={`bg-[#202020] p-4 rounded-lg mb-4 shadow-lg border border-gray-700 cursor-pointer ${
+        className={`bg-[#202020] p-4 rounded-lg mb-4 shadow-lg border border-gray-950 cursor-pointer ${
           isCreatingQuiz
             ? 'brightness-150'
             : 'brightness-100 hover:brightness-125'
@@ -697,7 +697,7 @@ const handleFileUpload = (event) => {
           quizzes.map((quiz) => (
             <div
                 key={quiz.id}
-                className={`hover:brightness-125 bg-[#202020] p-4 rounded-lg mb-4 shadow-lg border border-gray-700 ${
+                className={`hover:brightness-125 bg-[#202020] p-4 rounded-lg mb-4 shadow-lg border border-gray-950 ${
                     selectedQuiz?.id === quiz.id ? 'brightness-150' : 'brightness-100'
                 }`}
                 style={{ transition: '0.3s ease', cursor: 'pointer' }}
@@ -713,8 +713,22 @@ const handleFileUpload = (event) => {
                 <h2 className="text-xl text-white font-bold mt-4 mb-2">{quiz.quizName}</h2>
                 <p className="text-gray-400 mb-2">Type: {quiz.type}</p>
                 <p className="text-gray-400 mb-2">Number of Words: {quiz.numberOfWords}</p>
-                <p className="text-gray-400">User Groups: {quiz.userGroups.join(', ')}</p>
-            </div>
+                <div className="flex flex-wrap">
+                  {quiz.userGroups && quiz.userGroups.length > 0 ? (
+                    quiz.userGroups.map((group, index) => (
+                      <span
+                        key={index}
+                        className="bg-gray-700 text-white text-xs px-2 py-1 rounded mr-2 mb-2"
+                      >
+                        {group}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-400 text-xs">N/A</span>
+                  )}
+                </div>
+
+              </div>
           ))
         ) : (
           <p className="text-white">No quizzes available.</p>
@@ -756,7 +770,6 @@ const handleFileUpload = (event) => {
         </select>
       </div>
 
-      {/* User Groups Selection */}
       <div className="mb-4">
         <label className="block text-white mb-2">User Groups:</label>
         <div style={{ width: '300px' }}>
@@ -817,7 +830,8 @@ const handleFileUpload = (event) => {
             }}
           />
         </div>
-      </div>
+      </div>{/* User Groups Selection */}
+      
 
       {/* Image Upload */}
       <div className="mb-4">
