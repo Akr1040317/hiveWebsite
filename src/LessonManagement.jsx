@@ -8,6 +8,8 @@ import {
   updateDoc,
   deleteDoc,
   getDoc,
+  arrayUnion,
+  arrayRemove,
 } from 'firebase/firestore'; // Firestore functions
 import { db, storage } from './firebaseConfig'; // Firebase config (ensure storage is exported)
 import {
@@ -82,15 +84,43 @@ const LessonManagement = () => {
   const [duplicatesFound, setDuplicatesFound] = useState([]);
   const [wordsToSave, setWordsToSave] = useState([]);
 
-  // Add these state variables alongside existing ones
+  // Additional form fields
   const [summaryTitle, setSummaryTitle] = useState('');
   const [nextLesson, setNextLesson] = useState('');
+  const [category, setCategory] = useState('');
 
+  // Categories state
+  const [categories, setCategories] = useState([]);
+
+  // States for creating a new category
+  const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
+  const [newCategoryId, setNewCategoryId] = useState('');
+  const [newCategoryDescription, setNewCategoryDescription] = useState('');
+  const [newCategoryImageFile, setNewCategoryImageFile] = useState(null);
+  const [newCategoryImageURL, setNewCategoryImageURL] = useState('');
+  const [newCategoryTime, setNewCategoryTime] = useState('');
+
+  // State to track old category during editing
+  const [oldCategory, setOldCategory] = useState('');
+
+  // Fetch categories from Firestore on mount
   useEffect(() => {
-    if (selectedLesson && !isCreatingLesson) {
-      populateForm(selectedLesson);
-    }
-  }, [selectedLesson, isCreatingLesson]);
+    const fetchCategories = async () => {
+      try {
+        const categoriesCollection = collection(db, 'categories');
+        const categoriesSnapshot = await getDocs(categoriesCollection);
+        const categoriesList = categoriesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setCategories(categoriesList);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+  
+    fetchCategories();
+  }, []);
 
   // Fetch user groups from Firestore
   useEffect(() => {
@@ -108,7 +138,7 @@ const LessonManagement = () => {
     fetchUserGroups();
   }, []);
 
-  // Fetch lessons from Firestore
+  // Fetch lessons from Firestore on mount and when refreshed
   useEffect(() => {
     const fetchLessons = async () => {
       const lessonCollection = collection(db, 'lessons');
@@ -171,43 +201,118 @@ const LessonManagement = () => {
     populateForm(lesson);
   };
 
-  // Populate form fields for editing
-  const populateForm = (lesson) => {
-    setLessonId(lesson.lessonId || '');
-    setTitle(lesson.title || '');
-    setDuration(lesson.duration || '');
-    setDifficulty(lesson.difficulty || '');
-    setIntroduction(lesson.introduction || '');
-    setPatterns(
-      lesson.patterns && lesson.patterns.length > 0
-        ? lesson.patterns.map((pat) => ({
-            bullet: pat.bullet || '•',
-            text: pat.text || '',
-          }))
-        : [{ bullet: '•', text: '' }]
-    );
-    setMiniLessonTitle(lesson.miniLessonTitle || '');
-    setMiniLessons(
-      lesson.miniLesson.length > 0 ? lesson.miniLesson : [{ text: '' }]
-    );
-    // Ensure each summary has a bullet
-    setSummary(
-      lesson.summary && lesson.summary.length > 0
-        ? lesson.summary.map((sum) => ({
-            bullet: sum.bullet || '•',
-            text: sum.text || '',
-          }))
-        : [{ bullet: '•', text: '' }]
-    );
-    setUserGroups(lesson.userGroups || []);
-    setSelectedUserGroupsOptions(
-      lesson.userGroups.map((group) => ({ value: group, label: group }))
-    );
-    setImageUrl(lesson.imageUrl || '');
-    setImageFile(null);
-    setSummaryTitle(lesson.summaryTitle || '');
-    setNextLesson(lesson.nextLesson || '');
+  // Handle new category image upload
+  const handleNewCategoryImageUpload = (e) => {
+    if (e.target.files[0]) {
+      const file = e.target.files[0];
+      const url = URL.createObjectURL(file);
+      setNewCategoryImageFile(file);
+      setNewCategoryImageURL(url);
+    }
   };
+
+  // Handle create category form submission
+  const handleCreateCategory = async (e) => {
+    e.preventDefault();
+
+    // Basic validation
+    if (!newCategoryId || !newCategoryDescription || !newCategoryImageFile || !newCategoryTime) {
+      alert('Please fill in all required fields for the new category.');
+      return;
+    }
+
+    try {
+      // Check if category already exists
+      const categoryDoc = await getDoc(doc(db, 'categories', newCategoryId));
+      if (categoryDoc.exists()) {
+        alert('A category with this ID already exists. Please choose a different ID.');
+        return;
+      }
+
+      // Upload the category image
+      const fileName = `${Date.now()}_${newCategoryImageFile.name}`;
+      const categoryImageRef = storageRef(storage, `categoryImages/${fileName}`);
+      await uploadBytes(categoryImageRef, newCategoryImageFile);
+      const categoryImageURL = await getDownloadURL(categoryImageRef);
+
+      // Create the new category document with an empty 'lessons' array
+      await setDoc(doc(db, 'categories', newCategoryId), {
+        categoryId: newCategoryId,      // Correct field
+        description: newCategoryDescription,
+        imageURL: categoryImageURL,     // Correct field name
+        time: newCategoryTime,
+        lessons: [],                     // Initialize with an empty array
+      });
+
+      // Update categories state with the new category including 'categoryId' and 'imageURL'
+      setCategories([...categories, {
+        id: newCategoryId,
+        categoryId: newCategoryId,      // Add categoryId field
+        description: newCategoryDescription,
+        imageURL: categoryImageURL,     // Correct field name
+        time: newCategoryTime,
+        lessons: [],
+      }]);
+
+      // Reset new category form fields
+      setNewCategoryId('');
+      setNewCategoryDescription('');
+      setNewCategoryImageFile(null);
+      setNewCategoryImageURL('');
+      setNewCategoryTime('');
+
+      // Close the modal
+      setShowNewCategoryModal(false);
+
+      alert('Category created successfully!');
+    } catch (error) {
+      console.error('Error creating new category:', error);
+      alert('Error creating new category. Check console for details.');
+    }
+  };
+
+
+  // Populate form fields for editing
+  // Populate form fields for editing
+const populateForm = (lesson) => {
+  setLessonId(lesson.lessonId || '');
+  setTitle(lesson.title || '');
+  setDuration(lesson.duration || '');
+  setDifficulty(lesson.difficulty || '');
+  setIntroduction(lesson.introduction || '');
+  setPatterns(
+    lesson.patterns && lesson.patterns.length > 0
+      ? lesson.patterns.map((pat) => ({
+          bullet: pat.bullet || '•',
+          text: pat.text || '',
+        }))
+      : [{ bullet: '•', text: '' }]
+  );
+  setMiniLessonTitle(lesson.miniLessonTitle || '');
+  setMiniLessons(
+    lesson.miniLesson.length > 0 ? lesson.miniLesson : [{ text: '' }]
+  );
+  // Ensure each summary has a bullet
+  setSummary(
+    lesson.summary && lesson.summary.length > 0
+      ? lesson.summary.map((sum) => ({
+          bullet: sum.bullet || '•',
+          text: sum.text || '',
+        }))
+      : [{ bullet: '•', text: '' }]
+  );
+  setUserGroups(lesson.userGroups || []);
+  setSelectedUserGroupsOptions(
+    lesson.userGroups.map((group) => ({ value: group, label: group }))
+  );
+  setImageUrl(lesson.imageUrl || ''); // Corrected: 'imageUrl' instead of 'imageURL'
+  setImageFile(null);
+  setSummaryTitle(lesson.summaryTitle || '');
+  setNextLesson(lesson.nextLesson || '');
+  setCategory(lesson.category || '');
+  setOldCategory(lesson.category || ''); // Track old category
+};
+
 
   // Reset form fields
   const resetForm = () => {
@@ -226,6 +331,8 @@ const LessonManagement = () => {
     setImageFile(null);
     setSummaryTitle('');
     setNextLesson('');
+    setCategory('');
+    setOldCategory('');
   };
 
   // Handle image file selection
@@ -254,16 +361,35 @@ const LessonManagement = () => {
     }
   };
 
-  // Handle form submission for creating or updating a lesson
+  // Function to update the 'lessons' array in a category document
+  const updateCategoryLessons = async (categoryId, lessonId, action) => {
+    if (!categoryId) return;
+
+    const categoryDocRef = doc(db, 'categories', categoryId);
+    try {
+      if (action === 'add') {
+        await updateDoc(categoryDocRef, {
+          lessons: arrayUnion(lessonId),
+        });
+      } else if (action === 'remove') {
+        await updateDoc(categoryDocRef, {
+          lessons: arrayRemove(lessonId),
+        });
+      }
+    } catch (error) {
+      console.error(`Error updating category (${action}) lessons:`, error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     // Basic validation
     if (!lessonId || !title || !duration || !difficulty || !introduction) {
       alert('Please fill in all required fields.');
       return;
     }
-
+  
     // Ensure lessonId is unique when creating or changing
     if (isCreatingLesson || (selectedLesson && lessonId !== selectedLesson.lessonId)) {
       const existingLessonDoc = await getDoc(doc(db, 'lessons', lessonId));
@@ -272,7 +398,7 @@ const LessonManagement = () => {
         return;
       }
     }
-
+  
     // Upload image and get URL
     let uploadedImageUrl = imageUrl;
     if (imageFile) {
@@ -282,28 +408,28 @@ const LessonManagement = () => {
         return;
       }
     }
-
+  
     // Prepare patterns, mini-lessons, and summary by removing empty entries
     const processedPatterns = patterns
-    .filter((pat) => pat.text.trim() !== '')
-    .map((pat) => ({
-      bullet: pat.bullet, // Ensure bullet is included
-      text: pat.text,
-    }));
-
+      .filter((pat) => pat.text.trim() !== '')
+      .map((pat) => ({
+        bullet: pat.bullet, // Ensure bullet is included
+        text: pat.text,
+      }));
+  
     const processedSummary = summary
-    .filter((sum) => sum.text.trim() !== '')
-    .map((sum) => ({
-      bullet: sum.bullet, // Ensure bullet is included
-      text: sum.text,
-    }));
-
+      .filter((sum) => sum.text.trim() !== '')
+      .map((sum) => ({
+        bullet: sum.bullet, // Ensure bullet is included
+        text: sum.text,
+      }));
+  
     const processedMiniLessons = miniLessons
       .filter((ml) => ml.text.trim() !== '')
       .map((ml) => ({
         text: ml.text,
       }));
-
+  
     // Prepare lesson data
     const lessonData = {
       lessonId,
@@ -319,14 +445,15 @@ const LessonManagement = () => {
       nextLesson,    // Newly added field
       imageUrl: uploadedImageUrl || null,
       userGroups,
+      category,
     };
-
+  
     try {
       if (isCreatingLesson) {
         // Create a new lesson in Firestore with lessonId as document ID
         await setDoc(doc(db, 'lessons', lessonId), lessonData);
         console.log('Lesson created with ID:', lessonId);
-
+      
         // Update the lessons array
         setLessons((prevLessons) => {
           const updatedLessons = [
@@ -337,17 +464,25 @@ const LessonManagement = () => {
           updatedLessons.sort((a, b) => a.title.localeCompare(b.title));
           return updatedLessons;
         });
-
+      
+        // Update the selected category's 'lessons' array
+        await updateCategoryLessons(category, lessonId, 'add');
+      
         // Set the selected lesson to the newly created lesson
-        setSelectedLesson({ id: lessonId, ...lessonData });
-
-        // Reset the form
-        resetForm();
+        const newLesson = { id: lessonId, ...lessonData };
+        setSelectedLesson(newLesson);
+      
+        // Populate the form with the new lesson's data
+        populateForm(newLesson);
+      
         setIsCreatingLesson(false);
-
+      
         // Show the success modal
         setShowSuccessMessage(true);
         setTimeout(() => setShowSuccessMessage(false), 3000);
+      
+        // Refresh lessons list
+        await refreshLessons();
       } else if (selectedLesson) {
         if (lessonId !== selectedLesson.lessonId) {
           // Changing lessonId: create new document, copy data, delete old document
@@ -357,13 +492,13 @@ const LessonManagement = () => {
             alert('A lesson with the new Lesson ID already exists. Please choose a different Lesson ID.');
             return;
           }
-
+  
           // Create new document with new lessonId
           await setDoc(doc(db, 'lessons', lessonId), lessonData);
-
+  
           // Delete old document
           await deleteDoc(doc(db, 'lessons', selectedLesson.lessonId));
-
+  
           // Update the lessons array
           setLessons((prevLessons) =>
             prevLessons
@@ -371,14 +506,20 @@ const LessonManagement = () => {
               .concat({ id: lessonId, ...lessonData })
               .sort((a, b) => a.title.localeCompare(b.title))
           );
-
+  
+          // Update the selected category's 'lessons' array
+          await updateCategoryLessons(category, lessonId, 'add');
+          await updateCategoryLessons(oldCategory, selectedLesson.lessonId, 'remove');
+  
           // Update the selected lesson
-          setSelectedLesson({ id: lessonId, ...lessonData });
-
-          // Reset the form
-          resetForm();
+          const newLesson = { id: lessonId, ...lessonData };
+          setSelectedLesson(newLesson);
+  
+          // Populate the form with the new lesson's data
+          populateForm(newLesson);
+  
           setIsCreatingLesson(false);
-
+  
           // Show the success modal
           setShowSuccessMessage(true);
           setTimeout(() => setShowSuccessMessage(false), 3000);
@@ -386,29 +527,41 @@ const LessonManagement = () => {
           // If lessonId hasn't changed, just update the existing document
           await updateDoc(doc(db, 'lessons', lessonId), lessonData);
           console.log('Lesson updated successfully!');
-
+  
+          // Check if category has changed
+          if (category !== oldCategory) {
+            // Remove from old category
+            await updateCategoryLessons(oldCategory, lessonId, 'remove');
+            // Add to new category
+            await updateCategoryLessons(category, lessonId, 'add');
+          }
+  
           // Update the lessons array
           setLessons((prevLessons) =>
             prevLessons.map((lesson) =>
               lesson.id === lessonId ? { id: lessonId, ...lessonData } : lesson
             )
           );
-
+  
           // Update the selected lesson
-          setSelectedLesson({ id: lessonId, ...lessonData });
-
-          populateForm({ id: lessonId, ...lessonData });
-
-          // **DO NOT RESET THE FORM HERE**
-          // resetForm(); // Removed to retain form data
-          // setIsCreatingLesson(false); // Removed to keep in edit mode
-
+          const updatedLesson = { id: lessonId, ...lessonData };
+          setSelectedLesson(updatedLesson);
+  
+          // Populate the form with the updated lesson's data
+          populateForm(updatedLesson);
+  
+          // Update oldCategory
+          setOldCategory(category);
+  
           // Show the success modal
           setShowSuccessMessage(true);
           setTimeout(() => setShowSuccessMessage(false), 3000);
+  
+          // Refresh lessons list to ensure left side reflects changes
+          await refreshLessons();
         }
       }
-
+  
       // Refresh lessons list after update/create
       // Optional: If you want to refetch instead of updating state manually
       // await fetchLessons(); // You can define a function to refetch lessons
@@ -416,7 +569,8 @@ const LessonManagement = () => {
       console.error('Error submitting lesson:', error);
       alert('Error submitting lesson. Check console for details.');
     }
-  };
+  };  
+
 
   // Handle dynamic fields for patterns
   const handlePatternChange = (index, field, value) => {
@@ -427,7 +581,6 @@ const LessonManagement = () => {
     setPatterns(newPatterns);
   };
   
-
   const addPattern = () => {
     setPatterns([...patterns, { bullet: '•', text: '' }]);
   };
@@ -560,14 +713,17 @@ const LessonManagement = () => {
       // Upload image
       const uploadedUrl = await uploadImage();
       if (uploadedUrl) {
+        // Retain the existing imageUrl if creating a new lesson
+        // Or set the new imageUrl if editing
+  
         // Close both modals
         setShowImagePreviewModal(false);
-        setShowImageUploadModal(false); // Add this line
+        setShowImageUploadModal(false);
       } else {
         alert('Image upload failed.');
       }
     };
-  };  
+  };
   
 
   // Handle image file upload for existing lesson
@@ -585,9 +741,14 @@ const LessonManagement = () => {
     if (!selectedLesson) return;
 
     try {
+      // Remove the lessonId from the associated category's 'lessons' array
+      await updateCategoryLessons(selectedLesson.category, selectedLesson.lessonId, 'remove');
+
+      // Delete the lesson document
       await deleteDoc(doc(db, 'lessons', selectedLesson.lessonId));
       console.log('Lesson deleted successfully!');
       alert('Lesson deleted successfully!');
+      
       // Refresh lessons list
       const lessonSnapshot = await getDocs(collection(db, 'lessons'));
       let lessonList = lessonSnapshot.docs.map((doc) => ({
@@ -596,6 +757,7 @@ const LessonManagement = () => {
       }));
       lessonList.sort((a, b) => a.title.localeCompare(b.title));
       setLessons(lessonList);
+      
       // Reset states
       resetForm();
       setSelectedLesson(null);
@@ -801,7 +963,6 @@ const LessonManagement = () => {
     setShowDuplicatePrompt(false);
   };
 
-  // Function to create or update lesson (used for handling duplicates)
   const createOrUpdateLesson = async (patternsToSave, keepDuplicates) => {
     try {
       // Prepare lesson data with filtered patterns
@@ -818,54 +979,57 @@ const LessonManagement = () => {
         miniLessonTitle: miniLessonTitle.trim() === '' ? null : miniLessonTitle,
         miniLesson: miniLessons.filter((ml) => ml.text.trim() !== ''),
         summary: summary
-        .filter((sum) => sum.text.trim() !== '')
-        .map((sum) => ({
-          bullet: sum.bullet, // Ensure bullet is included
-          text: sum.text,
-        })),
+          .filter((sum) => sum.text.trim() !== '')
+          .map((sum) => ({
+            bullet: sum.bullet, // Ensure bullet is included
+            text: sum.text,
+          })),
         summaryTitle, // Newly added field
         nextLesson,    // Newly added field
         imageUrl: imageUrl || null,
         userGroups,
+        category,
       };
-
-        if (isCreatingLesson) {
-          // Create a new lesson in Firestore with lessonId as document ID
-          await setDoc(doc(db, 'lessons', lessonId), lessonData);
-          console.log('Lesson created with ID:', lessonId);
-        
-          // Update the lessons array
-          setLessons((prevLessons) => {
-            const updatedLessons = [
-              ...prevLessons,
-              { id: lessonId, ...lessonData },
-            ];
-            // Sort the updated lessons array
-            updatedLessons.sort((a, b) => a.title.localeCompare(b.title));
-            return updatedLessons;
-          });
-        
-          // Set the selected lesson to the newly created lesson
-          const newLesson = { id: lessonId, ...lessonData };
-          setSelectedLesson(newLesson);
-        
-          // Do NOT reset the form
-          // resetForm();
-        
-          // Set isCreatingLesson to false to switch to edit mode
-          setIsCreatingLesson(false);
-        
-          // Populate the form with the new lesson's data (ensure useEffect handles this)
-          // If useEffect is not handling it, manually call populateForm
-          // populateForm(newLesson); // Optional if useEffect is set up
-        
-          // Show the success modal
-          setShowSuccessMessage(true);
-          setTimeout(() => setShowSuccessMessage(false), 3000);
-        
-          // Refresh the lessons list to include the new lesson
-          await refreshLessons();
-        }else if (selectedLesson) {
+  
+      if (isCreatingLesson) {
+        // Create a new lesson in Firestore with lessonId as document ID
+        await setDoc(doc(db, 'lessons', lessonId), lessonData);
+        console.log('Lesson created with ID:', lessonId);
+      
+        // Update the lessons array
+        setLessons((prevLessons) => {
+          const updatedLessons = [
+            ...prevLessons,
+            { id: lessonId, ...lessonData },
+          ];
+          // Sort the updated lessons array
+          updatedLessons.sort((a, b) => a.title.localeCompare(b.title));
+          return updatedLessons;
+        });
+      
+        // Update the selected category's 'lessons' array
+        await updateCategoryLessons(category, lessonId, 'add');
+      
+        // Set the selected lesson to the newly created lesson
+        const newLesson = { id: lessonId, ...lessonData };
+        setSelectedLesson(newLesson);
+      
+        // Do NOT reset the form
+        // resetForm();
+      
+        // Set isCreatingLesson to false to switch to edit mode
+        setIsCreatingLesson(false);
+      
+        // Populate the form with the new lesson's data
+        populateForm(newLesson);
+      
+        // Show the success modal
+        setShowSuccessMessage(true);
+        setTimeout(() => setShowSuccessMessage(false), 3000);
+      
+        // Refresh the lessons list to include the new lesson
+        await refreshLessons();
+      } else if (selectedLesson) {
         if (lessonId !== selectedLesson.lessonId) {
           // Changing lessonId: create new document, copy data, delete old document
           // Check if new lessonId already exists
@@ -874,13 +1038,13 @@ const LessonManagement = () => {
             alert('A lesson with the new Lesson ID already exists. Please choose a different Lesson ID.');
             return;
           }
-
+  
           // Create new document with new lessonId
           await setDoc(doc(db, 'lessons', lessonId), lessonData);
-
+  
           // Delete old document
           await deleteDoc(doc(db, 'lessons', selectedLesson.lessonId));
-
+  
           // Update the lessons array
           setLessons((prevLessons) =>
             prevLessons
@@ -888,14 +1052,20 @@ const LessonManagement = () => {
               .concat({ id: lessonId, ...lessonData })
               .sort((a, b) => a.title.localeCompare(b.title))
           );
-
-          // Update the selected lesson
-          setSelectedLesson({ id: lessonId, ...lessonData });
-
-          // Reset the form
-          resetForm();
+  
+          // Update the selected category's 'lessons' array
+          await updateCategoryLessons(category, lessonId, 'add');
+          await updateCategoryLessons(oldCategory, selectedLesson.lessonId, 'remove');
+  
+          // Set the selected lesson to the newly created lesson
+          const newLesson = { id: lessonId, ...lessonData };
+          setSelectedLesson(newLesson);
+  
+          // Populate the form with the new lesson's data
+          populateForm(newLesson);
+  
           setIsCreatingLesson(false);
-
+  
           // Show the success modal
           setShowSuccessMessage(true);
           setTimeout(() => setShowSuccessMessage(false), 3000);
@@ -903,25 +1073,36 @@ const LessonManagement = () => {
           // If lessonId hasn't changed, just update the existing document
           await updateDoc(doc(db, 'lessons', lessonId), lessonData);
           console.log('Lesson updated successfully!');
-
+  
+          // Check if category has changed
+          if (category !== oldCategory) {
+            // Remove from old category
+            await updateCategoryLessons(oldCategory, lessonId, 'remove');
+            // Add to new category
+            await updateCategoryLessons(category, lessonId, 'add');
+          }
+  
           // Update the lessons array
           setLessons((prevLessons) =>
             prevLessons.map((lesson) =>
               lesson.id === lessonId ? { id: lessonId, ...lessonData } : lesson
             )
           );
-
+  
           // Update the selected lesson
-          setSelectedLesson({ id: lessonId, ...lessonData });
-
-          // **DO NOT RESET THE FORM HERE**
-          // resetForm(); // Removed to retain form data
-          // setIsCreatingLesson(false); // Removed to keep in edit mode
-
+          const updatedLesson = { id: lessonId, ...lessonData };
+          setSelectedLesson(updatedLesson);
+  
+          // Populate the form with the updated lesson's data
+          populateForm(updatedLesson);
+  
+          // Update oldCategory
+          setOldCategory(category);
+  
           // Show the success modal
           setShowSuccessMessage(true);
           setTimeout(() => setShowSuccessMessage(false), 3000);
-
+  
           // Refresh lessons list to ensure left side reflects changes
           await refreshLessons();
         }
@@ -931,6 +1112,7 @@ const LessonManagement = () => {
       alert('Error submitting lesson. Check console for details.');
     }
   };
+  
 
   // Function to refresh lessons from Firestore
   const refreshLessons = async () => {
@@ -998,6 +1180,9 @@ const LessonManagement = () => {
               <h2 className="text-xl text-white font-bold mt-4 mb-2">
                 {lesson.title}
               </h2>
+              {lesson.category && (
+                <p className="text-gray-400 mb-1">Category: {lesson.category}</p>
+              )}
               <p className="text-gray-400 mb-1">Difficulty: {lesson.difficulty}</p>
               <p className="text-gray-400 mb-2">Duration: {lesson.duration}</p>
               <div className="flex flex-wrap">
@@ -1082,6 +1267,61 @@ const LessonManagement = () => {
                   required
                   rows={1}
                 />
+              </div>
+              
+              {/* Category */}
+              <div className="mb-4">
+                <label className="block text-gray-300 mb-2">
+                  Category<span className="text-red-500">*</span>:
+                </label>
+                <Select
+                  options={categories.map(category => ({ value: category.categoryId, label: category.categoryId }))}
+                  value={
+                    category
+                      ? { value: category, label: category }
+                      : null
+                  }
+                  onChange={(selectedOption) => {
+                    setCategory(selectedOption ? selectedOption.value : '');
+                  }}
+                  placeholder="Select category..."
+                  isClearable
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      backgroundColor: '#202020',
+                      borderColor: '#555',
+                      color: 'white',
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      backgroundColor: '#202020',
+                    }),
+                    option: (base, state) => ({
+                      ...base,
+                      backgroundColor: state.isSelected ? '#ffa500' : '#202020',
+                      color: 'white',
+                      ':hover': {
+                        backgroundColor: '#ffa500',
+                      },
+                    }),
+                    singleValue: (base) => ({
+                      ...base,
+                      color: 'white',
+                    }),
+                  }}
+                />
+              </div>
+
+              {/* Add "New Category" button */}
+              <div className="mb-4">
+                <button
+                  type="button"
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center"
+                  onClick={() => setShowNewCategoryModal(true)}
+                >
+                  <FaPencilAlt className="mr-2" /> New Category
+                </button>
               </div>
 
               {/* Duration */}
@@ -1418,7 +1658,7 @@ const LessonManagement = () => {
                     ? imageUploading
                       ? 'Uploading...'
                       : 'Create Lesson'
-                    : imageUploading
+                    :imageUploading
                     ? 'Uploading...'
                     : 'Update Lesson'}
                 </button>
@@ -1758,34 +1998,120 @@ const LessonManagement = () => {
           </div>
         )}
 
-        {/* Duplicate Prompt Modal */}
-        {showDuplicatePrompt && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div className="bg-[#202020] p-6 rounded-lg">
-              <h3 className="text-white text-lg font-bold mb-4">
-                Duplicate Patterns Detected
-              </h3>
-              <p className="text-gray-300 mb-4">
-                The following patterns are duplicated: {duplicatesFound.join(', ')}. Do you
-                want to keep the duplicates?
-              </p>
-              <div className="flex justify-end space-x-4">
+        {/* New Category Modal */}
+        {showNewCategoryModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-[#202020] text-white p-6 rounded-lg w-1/2">
+              {/* Header with Close Button */}
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Create New Category</h2>
                 <button
-                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
-                  onClick={() => handleDuplicatePrompt(false)}
+                  onClick={() => setShowNewCategoryModal(false)}
+                  className="text-gray-400 hover:text-white"
                 >
-                  No, Remove Duplicates
-                </button>
-                <button
-                  className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
-                  onClick={() => handleDuplicatePrompt(true)}
-                >
-                  Yes, Keep Duplicates
+                  &times;
                 </button>
               </div>
+
+              {/* Form Fields */}
+              <form onSubmit={handleCreateCategory}>
+                {/* Category ID (lessonId) */}
+                <div className="mb-4">
+                  <label className="block text-gray-300 mb-2">
+                    Category ID<span className="text-red-500">*</span>:
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-2 rounded bg-[#333333] text-white focus:outline-none"
+                    value={newCategoryId}
+                    onChange={(e) => setNewCategoryId(e.target.value)}
+                    required
+                    placeholder="e.g., LanguageBasics"
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="mb-4">
+                  <label className="block text-gray-300 mb-2">
+                    Description<span className="text-red-500">*</span>:
+                  </label>
+                  <textarea
+                    className="w-full p-2 rounded bg-[#333333] text-white focus:outline-none resize-none"
+                    value={newCategoryDescription}
+                    onChange={(e) => setNewCategoryDescription(e.target.value)}
+                    required
+                    rows={3}
+                    placeholder="Enter category description"
+                  ></textarea>
+                </div>
+
+                {/* Image Upload */}
+                <div className="mb-4">
+                  <label className="block text-gray-300 mb-2">
+                    Category Image<span className="text-red-500">*</span>:
+                  </label>
+                  {/* Display selected image preview if available */}
+                  {newCategoryImageURL && (
+                    <div className="mb-2">
+                      <img
+                        src={newCategoryImageURL}
+                        alt="Category Preview"
+                        className="w-64 h-auto object-cover rounded"
+                      />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="bg-[#ffa500] text-white px-4 py-2 rounded-lg hover:bg-[#ff9f00] flex items-center"
+                    onClick={() => document.getElementById('newCategoryImageInput').click()}
+                  >
+                    <FaUpload className="mr-2" /> {newCategoryImageURL ? 'Change Image' : 'Upload Image'}
+                  </button>
+                  <input
+                    type="file"
+                    accept="image/jpeg"
+                    id="newCategoryImageInput"
+                    style={{ display: 'none' }}
+                    onChange={handleNewCategoryImageUpload}
+                  />
+                </div>
+
+                {/* Time Field */}
+                <div className="mb-4">
+                  <label className="block text-gray-300 mb-2">
+                    Time<span className="text-red-500">*</span>:
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-2 rounded bg-[#333333] text-white focus:outline-none"
+                    value={newCategoryTime}
+                    onChange={(e) => setNewCategoryTime(e.target.value)}
+                    required
+                    placeholder="e.g., 30 minutes"
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <div className="flex justify-end space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewCategoryModal(false)}
+                    className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 flex items-center"
+                  >
+                    <FaCheck className="mr-2" /> Create Category
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
+
       </div>
 
       {/* Additional Modals and Components can be added here */}
