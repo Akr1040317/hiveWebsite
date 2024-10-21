@@ -775,9 +775,6 @@ const Hive = () => {
                 {post.type === 'Article' && post.category && (
                   <p className="text-gray-400 mb-3">Category: {post.category}</p>
                 )}
-                {post.type === 'Announcement' && post.subDetails && (
-                  <p className="text-gray-400 mb-3">Sub Details: {post.subDetails}</p>
-                )}
                 {post.type === 'WOTD' && post.wordActualDate && (
                   <p className="text-gray-400 mb-3">
                     Actual Word Date: {post.wordActualDate.toDate().toLocaleDateString()}
