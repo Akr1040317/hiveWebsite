@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom"; // Import useNavigate from react
 import "./Dashboard.css";
 import QuizManagement from './QuizManagement';
 import LessonManagement from './LessonManagement';
+import Hive from './Hive';
 
 
 // Mode0: Your original welcome page content
@@ -171,9 +172,14 @@ export default function Dashboard() {
                     </a>
                     <a
                       href="#"
-                      className="group flex items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-gray-300 hover:bg-[#ffa500]/10 hover:shadow-[0_0_10px_#ffa500]"
+                      className={`group flex items-center gap-2 rounded-lg px-2.5 text-sm font-medium ${
+                        activeView === "hive"
+                          ? "bg-[#303030] text-white"
+                          : "text-gray-300 hover:bg-[#ffa500]/10 hover:shadow-[0_0_10px_#ffa500]"
+                      }`}
+                      onClick={() => setActiveView("hive")}
                     >
-                      <FaHive className="icon" />
+                      <FaBookOpen className="icon" />
                       <span className="grow py-2">The Hive</span>
                     </a>
                     <a
@@ -253,6 +259,8 @@ export default function Dashboard() {
               <QuizManagement /> // Render Quiz Management
             ) : activeView === "lessonManagement" ? (
               <LessonManagement /> // Render Lesson Management
+            ) : activeView === "hive" ? (
+              <Hive /> // Render Hive Management
             ) : (
               <Mode0 /> // Default to Welcome Page if no match
             )}
