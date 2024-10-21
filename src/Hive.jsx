@@ -884,7 +884,7 @@ const Hive = () => {
               {/* Word Field - Only visible when creating or editing WOTD */}
               {(type === 'WOTD' || (!isCreatingPost && selectedPost && selectedPost.type === 'WOTD')) && (
                 <div className="mb-4 flex items-center">
-                  {/* Loading Indicator */}
+                  {/* Loading Indica */}
                   {isLoadingWordInfo && (
                     <div className="ml-2">
                       <svg
