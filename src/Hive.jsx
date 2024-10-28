@@ -27,9 +27,9 @@ import Select from 'react-select';
 const Hive = () => {
   // Define the collection map
   const collectionMap = {
-    'Announcement': 'announcements',
-    'Article': 'articles',
-    'WOTD': 'wotd',
+    Announcement: 'announcements',
+    Article: 'articles',
+    WOTD: 'wotd',
   };
 
   // State variables
@@ -57,6 +57,10 @@ const Hive = () => {
   const [imageUploading, setImageUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
 
+  // New State Variables for Article Content
+  const [introduction, setIntroduction] = useState(''); // Introduction text
+  const [conclusion, setConclusion] = useState(''); // Conclusion text
+
   // States for handling image upload modals
   const [showImageUploadModal, setShowImageUploadModal] = useState(false);
   const [showImagePreviewModal, setShowImagePreviewModal] = useState(false);
@@ -77,6 +81,24 @@ const Hive = () => {
 
   // Refs for auto-resizing textareas
   const subDetailsRef = useRef(null);
+
+  // New State Variable for Dynamic Sections
+  const [sections, setSections] = useState([]);
+
+  const [showSectionDropdown, setShowSectionDropdown] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.section-dropdown')) {
+        setShowSectionDropdown(false);
+      }
+    };
+  
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
 
   // Fetch all user groups from Firestore
   useEffect(() => {
@@ -249,45 +271,21 @@ const Hive = () => {
     setSelectedUserGroupsOptions([]);
     setImageUrl('');
     setImageFile(null);
+    setIntroduction('');
+    setConclusion('');
     setIsLoadingWordInfo(false);
   };
 
-  // Populate form fields for editing
-  const populateForm = (post) => {
-    console.log('Populating form with post:', post);
-    setPostId(post.id || '');
-    if (post.type === 'Article') {
-      setTitle(post.name || '');
-    } else if (post.type === 'WOTD') {
-      setWord(post.wordName || '');
-    } else if (post.type === 'Announcement') {
-      setTitle(post.name || '');
-      setSubDetails(post.subDetails || '');
-    }
-    setType(post.type || '');
-    setCategory(post.category || '');
-    setWord(post.wordName || '');
-    setMeaning(post.meaning || '');
-    setExampleSentence(post.exampleSentence || '');
-    setPartOfSpeech(post.partOfSpeech || '');
-    setWordActualDate(
-      post.wordActualDate && post.wordActualDate.toDate
-        ? post.wordActualDate.toDate().toISOString().split('T')[0]
-        : post.wordActualDate || ''
-    );
-    setUserGroups(post.userGroups || []);
-    setSelectedUserGroupsOptions(
-      post.userGroups.map((group) => ({ value: group, label: group }))
-    );
-    setImageUrl(post.imageUrl || '');
-    setImageFile(null);
-    setIsLoadingWordInfo(false);
+  
 
-    // If the post is WOTD, fetch word information
-    if (post.type === 'WOTD' && post.wordName) {
-      fetchWordInfo(post.wordName, post.id);
-    }
+  // Helper function to add a section
+  // Helper function to add a section
+  const addSection = (type) => {
+    const newSection = { id: Date.now(), type, content: type === 'image' ? '' : '' };
+    setSections([...sections, newSection]);
+    console.log(`Added a new ${type} section.`);
   };
+
 
   // Handle userGroups using react-select
   const handleUserGroupsChange = (selectedOptions) => {
@@ -433,6 +431,9 @@ const Hive = () => {
         ...postData,
         name: title,
         category,
+        introduction,
+        sections, // Include sections array
+        conclusion,
         imageUrl: uploadedImageUrl || null,
       };
     } else if (type === 'Announcement') {
@@ -647,6 +648,102 @@ const Hive = () => {
     }
   };
 
+  // Handler to update section content
+  const handleSectionChange = (id, value) => {
+    const updatedSections = sections.map((section) =>
+      section.id === id ? { ...section, content: value } : section
+    );
+    setSections(updatedSections);
+    console.log(`Updated section ${id} content.`);
+  };
+
+  // Handler to remove a section by id
+  const handleRemoveSection = (id) => {
+    const updatedSections = sections.filter((section) => section.id !== id);
+    setSections(updatedSections);
+    console.log(`Removed section ${id}.`);
+  };
+
+  // Handler to upload image for a section
+  const handleImageSectionUpload = async (id, file) => {
+    if (!file) return;
+
+    // Validate image (similar to main image validation)
+    const maxSizeInBytes = 100 * 1024; // 100 KB
+    if (file.size > maxSizeInBytes) {
+      alert('Image size exceeds 100 KB. Please choose a smaller image.');
+      return;
+    }
+
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      alert('Only JPEG and PNG images are allowed.');
+      return;
+    }
+
+    // Optional: Check aspect ratio or other validations here
+
+    // Upload image to Firebase Storage
+    const fileName = `sectionImages/${Date.now()}_${file.name}`;
+    const storageReference = storageRef(storage, fileName);
+    try {
+      await uploadBytes(storageReference, file);
+      const url = await getDownloadURL(storageReference);
+
+      // Update the section with the image URL
+      const updatedSections = sections.map((section) =>
+        section.id === id ? { ...section, content: url } : section
+      );
+      setSections(updatedSections);
+      console.log(`Uploaded image for section ${id}: ${url}`);
+    } catch (error) {
+      console.error('Error uploading section image:', error);
+      alert('Failed to upload image. Please try again.');
+    }
+  };
+
+  const populateForm = (post) => {
+    console.log('Populating form with post:', post);
+    setPostId(post.id || '');
+    if (post.type === 'Article') {
+      setTitle(post.name || '');
+      setIntroduction(post.introduction || '');
+      setSections(post.sections || []); // Load sections
+      setConclusion(post.conclusion || '');
+    } else if (post.type === 'WOTD') {
+      setWord(post.wordName || '');
+    } else if (post.type === 'Announcement') {
+      setTitle(post.name || '');
+      setSubDetails(post.subDetails || '');
+    }
+    setType(post.type || '');
+    setCategory(post.category || '');
+    setWord(post.wordName || '');
+    setMeaning(post.meaning || '');
+    setExampleSentence(post.exampleSentence || '');
+    setPartOfSpeech(post.partOfSpeech || '');
+    setWordActualDate(
+      post.wordActualDate && post.wordActualDate.toDate
+        ? post.wordActualDate.toDate().toISOString().split('T')[0]
+        : post.wordActualDate || ''
+    );
+    setUserGroups(post.userGroups || []);
+    setSelectedUserGroupsOptions(
+      post.userGroups.map((group) => ({ value: group, label: group }))
+    );
+    setImageUrl(post.imageUrl || '');
+    setImageFile(null);
+    setIntroduction(post.introduction || '');
+    setSections(post.sections || []); // Ensure sections are loaded
+    setConclusion(post.conclusion || '');
+    setIsLoadingWordInfo(false);
+  
+    // If the post is WOTD, fetch word information
+    if (post.type === 'WOTD' && post.wordName) {
+      fetchWordInfo(post.wordName, post.id);
+    }
+  };  
+
+
   // Helper function to determine if a color is dark based on hex
   const isDarkColor = (hex) => {
     if (!hex) return true;
@@ -775,6 +872,13 @@ const Hive = () => {
                 {post.type === 'Article' && post.category && (
                   <p className="text-gray-400 mb-3">Category: {post.category}</p>
                 )}
+                {post.type === 'Article' && post.introduction && (
+                  <p className="text-gray-300 mb-3">
+                    {post.introduction.length > 100
+                      ? `${post.introduction.substring(0, 100)}...`
+                      : post.introduction}
+                  </p>
+                )}
                 {post.type === 'WOTD' && post.wordActualDate && (
                   <p className="text-gray-400 mb-3">
                     Actual Word Date: {post.wordActualDate.toDate().toLocaleDateString()}
@@ -878,10 +982,178 @@ const Hive = () => {
                 </div>
               ) : null}
 
+              {/* Introduction (for Article) */}
+              {(type === 'Article' ||
+                (!isCreatingPost && selectedPost && selectedPost.type === 'Article')) && (
+                <div className="mb-4">
+                  <label className="block text-gray-300 mb-2">
+                    Introduction<span className="text-red-500">*</span>:
+                  </label>
+                  <textarea
+                    className="w-full p-2 rounded bg-[#333333] text-white focus:outline-none resize-none overflow-hidden"
+                    value={introduction}
+                    onChange={(e) => setIntroduction(e.target.value)}
+                    required
+                    rows={4}
+                    placeholder="Enter introduction"
+                  ></textarea>
+                </div>
+              )}
+
+              {/* Render Dynamic Sections */}
+              {sections.map((section, index) => (
+                <div key={section.id} className="mb-4 border p-4 rounded-lg bg-[#333333]">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="text-lg text-white capitalize">{section.type}</h4>
+                    <button
+                      type="button"
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() => handleRemoveSection(section.id)}
+                      title="Remove Section"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                  
+                  {/* Render input fields based on section type */}
+                  {section.type === 'paragraph' && (
+                    <textarea
+                      className="w-full p-2 rounded bg-[#444444] text-white focus:outline-none resize-none"
+                      value={section.content}
+                      onChange={(e) => handleSectionChange(section.id, e.target.value)}
+                      required
+                      rows={3}
+                      placeholder="Enter paragraph"
+                    ></textarea>
+                  )}
+                  
+                  {section.type === 'bullet' && (
+                    <textarea
+                      className="w-full p-2 rounded bg-[#444444] text-white focus:outline-none resize-none"
+                      value={section.content}
+                      onChange={(e) => handleSectionChange(section.id, e.target.value)}
+                      required
+                      rows={3}
+                      placeholder="Enter bullet points (one per line)"
+                    ></textarea>
+                  )}
+                  
+                  {section.type === 'header' && (
+                    <input
+                      type="text"
+                      className="w-full p-2 rounded bg-[#444444] text-white focus:outline-none"
+                      value={section.content}
+                      onChange={(e) => handleSectionChange(section.id, e.target.value)}
+                      required
+                      placeholder="Enter header text"
+                    />
+                  )}
+                  
+                  {section.type === 'image' && (
+                    <div className="flex items-center">
+                      <input
+                        type="file"
+                        accept="image/jpeg, image/png"
+                        onChange={(e) => handleImageSectionUpload(section.id, e.target.files[0])}
+                      />
+                      {section.content && (
+                        <img
+                          src={section.content}
+                          alt="Section"
+                          className="ml-4 w-32 h-32 object-cover rounded"
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Add Section Dropdown Button */}
+              {(type === 'Article' ||
+                (!isCreatingPost && selectedPost && selectedPost.type === 'Article')) && (
+                <div className="mb-4 w-full section-dropdown">
+                  <div className="relative inline-block text-left w-full">
+                    <button
+                      type="button"
+                      className="bg-[#202020] text-white px-6 py-4 rounded-lg border border-[#ffa500] w-full text-left flex justify-between items-center hover:bg-[#333333] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ffa500]"
+                      onClick={() => setShowSectionDropdown(!showSectionDropdown)}
+                    >
+                      <span>+ Add Section</span>
+                      <svg
+                        className="w-5 h-5 ml-2 -mr-1"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+
+                    {showSectionDropdown && (
+                      <div className="origin-top-right absolute left-0 mt-2 w-full rounded-md shadow-lg bg-[#202020] ring-1 ring-black ring-opacity-5">
+                        <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                          <button
+                            onClick={() => { addSection('paragraph'); setShowSectionDropdown(false); }}
+                            className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#ffa500] hover:text-black"
+                            role="menuitem"
+                          >
+                            Paragraph
+                          </button>
+                          <button
+                            onClick={() => { addSection('bullet'); setShowSectionDropdown(false); }}
+                            className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#ffa500] hover:text-black"
+                            role="menuitem"
+                          >
+                            Bullet Points
+                          </button>
+                          <button
+                            onClick={() => { addSection('header'); setShowSectionDropdown(false); }}
+                            className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#ffa500] hover:text-black"
+                            role="menuitem"
+                          >
+                            Header
+                          </button>
+                          <button
+                            onClick={() => { addSection('image'); setShowSectionDropdown(false); }}
+                            className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#ffa500] hover:text-black"
+                            role="menuitem"
+                          >
+                            Image
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Conclusion (for Article) */}
+              {(type === 'Article' ||
+                (!isCreatingPost && selectedPost && selectedPost.type === 'Article')) && (
+                <div className="mb-4">
+                  <label className="block text-gray-300 mb-2">
+                    Conclusion<span className="text-red-500">*</span>:
+                  </label>
+                  <textarea
+                    className="w-full p-2 rounded bg-[#333333] text-white focus:outline-none resize-none overflow-hidden"
+                    value={conclusion}
+                    onChange={(e) => setConclusion(e.target.value)}
+                    required
+                    rows={4}
+                    placeholder="Enter conclusion"
+                  ></textarea>
+                </div>
+              )}
+
               {/* Word Field - Only visible when creating or editing WOTD */}
               {(type === 'WOTD' || (!isCreatingPost && selectedPost && selectedPost.type === 'WOTD')) && (
                 <div className="mb-4 flex items-center">
-                  {/* Loading Indica */}
+                  {/* Loading Indicator */}
                   {isLoadingWordInfo && (
                     <div className="ml-2">
                       <svg
@@ -1203,7 +1475,7 @@ const Hive = () => {
             </div>
           </div>
         )}
-
+        
         {/* Image Preview Modal (Articles Only) */}
         {showImagePreviewModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
