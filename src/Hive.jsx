@@ -24,6 +24,8 @@ import {
 } from 'firebase/storage'; // Firebase Storage functions
 import Select from 'react-select';
 
+import { getAuth } from 'firebase/auth';
+
 const Hive = () => {
   // Define the collection map
   const collectionMap = {
@@ -32,6 +34,21 @@ const Hive = () => {
     WOTD: 'wotd',
   };
 
+  const auth = getAuth(); // Initialize Auth
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setCurrentUser(user);
+      } else {
+        setCurrentUser(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
+  
   // State variables
   const [posts, setPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null); // Selected post
@@ -440,8 +457,15 @@ const Hive = () => {
       postData = {
         ...postData,
         name: title,
-        subDetails,
+        subDetails,likes: 0, // Initialize likes to 0
+        announcementId: postId, // Store Post ID
+        userId: currentUser ? currentUser.uid : null, 
       };
+      if (!currentUser) {
+        alert('User not authenticated. Please log in to create an announcement.');
+        console.log('User authentication missing.');
+        return;
+      }
     } else if (type === 'WOTD') {
       // Parse the selected date and set the time to 1 AM EST (which is 6 AM UTC)
       if (!wordActualDate) {
@@ -573,14 +597,23 @@ const Hive = () => {
           setTimeout(() => setShowSuccessMessage(false), 3000);
           console.log('Success message displayed after postId change.');
         } else {
+
+          let updatedPostData = postData;
+          if (selectedPost.type === 'Announcement') {
+            // Preserve likes and userId
+            updatedPostData.likes = selectedPost.likes || 0;
+            updatedPostData.announcementId = selectedPost.announcementId || postId;
+            updatedPostData.userId = selectedPost.userId || (currentUser ? currentUser.uid : null);
+          }
+
           // If postId hasn't changed, just update the existing document
-          await updateDoc(doc(db, collectionName, postId), postData);
+          await updateDoc(doc(db, collectionName, postId), updatedPostData);
           console.log('Post updated successfully.');
 
           // Update the posts array
           setPosts((prevPosts) =>
             prevPosts.map((post) =>
-              post.id === postId ? { id: postId, ...postData, type: post.type } : post
+              post.id === postId ? { id: postId, ...updatedPostData, type: post.type } : post
             )
           );
           console.log('Posts state updated after update.');
@@ -591,7 +624,7 @@ const Hive = () => {
           }
 
           // Update the selected post
-          const updatedPost = { id: postId, ...postData, type: selectedPost.type };
+          const updatedPost = { id: postId, ...updatedPostData, type: selectedPost.type };
           setSelectedPost(updatedPost);
           console.log('Selected post updated.');
 
