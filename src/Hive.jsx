@@ -16,6 +16,7 @@ import {
   FaUpload,
   FaCheck,
   FaTimes,
+  FaPencilAlt,
 } from 'react-icons/fa';
 import {
   ref as storageRef,
@@ -293,17 +294,19 @@ const Hive = () => {
     setIsLoadingWordInfo(false);
   };
 
-  
-
-  // Helper function to add a section
-  // Helper function to add a section
   const addSection = (type) => {
-    const newSection = { id: Date.now(), type, content: type === 'image' ? '' : '' };
+    let newSection;
+    if (type === 'bullet') {
+      newSection = { id: Date.now(), type, content: [{ bullet: '•', text: '' }] };
+    } else if (type === 'image') {
+      newSection = { id: Date.now(), type, content: '' };
+    } else {
+      newSection = { id: Date.now(), type, content: '' };
+    }
     setSections([...sections, newSection]);
     console.log(`Added a new ${type} section.`);
   };
-
-
+  
   // Handle userGroups using react-select
   const handleUserGroupsChange = (selectedOptions) => {
     if (selectedOptions.some((option) => option.value === 'select_all')) {
@@ -500,10 +503,19 @@ const Hive = () => {
         return;
       }
 
+      if (!currentUser) {
+        alert('User not authenticated. Please log in to create a Word of the Day.');
+        console.log('User authentication missing.');
+        return;
+      }
+
       postData = {
-        ...postData,
-        wordName: word, // Use the 'word' state as 'wordName'
+        userGroups: processedUserGroups,
+        uploadDate: Timestamp.now(),
+        wordName: word.trim(),
         wordActualDate: Timestamp.fromDate(utcDate),
+        likes: 0,
+        userId: currentUser.uid,
       };
     }
 
@@ -603,6 +615,12 @@ const Hive = () => {
             // Preserve likes and userId
             updatedPostData.likes = selectedPost.likes || 0;
             updatedPostData.announcementId = selectedPost.announcementId || postId;
+            updatedPostData.userId = selectedPost.userId || (currentUser ? currentUser.uid : null);
+          }
+
+          if (selectedPost.type === 'WOTD') {
+            // Preserve likes and userId
+            updatedPostData.likes = selectedPost.likes || 0;
             updatedPostData.userId = selectedPost.userId || (currentUser ? currentUser.uid : null);
           }
 
@@ -766,7 +784,7 @@ const Hive = () => {
     setImageUrl(post.imageUrl || '');
     setImageFile(null);
     setIntroduction(post.introduction || '');
-    setSections(post.sections || []); // Ensure sections are loaded
+    setSections(post.sections || []);
     setConclusion(post.conclusion || '');
     setIsLoadingWordInfo(false);
   
@@ -776,6 +794,104 @@ const Hive = () => {
     }
   };  
 
+  const handleBulletPointChange = (sectionId, index, value) => {
+    setSections((prevSections) =>
+      prevSections.map((section) => {
+        if (section.id === sectionId) {
+          const updatedContent = [...section.content];
+          updatedContent[index].text = value;
+          return { ...section, content: updatedContent };
+        }
+        return section;
+      })
+    );
+  };
+
+  const addBulletPoint = (sectionId) => {
+    setSections((prevSections) =>
+      prevSections.map((section) => {
+        if (section.id === sectionId) {
+          return {
+            ...section,
+            content: [...section.content, { bullet: '•', text: '' }],
+          };
+        }
+        return section;
+      })
+    );
+  };
+
+  const removeBulletPoint = (sectionId, index) => {
+    setSections((prevSections) =>
+      prevSections.map((section) => {
+        if (section.id === sectionId) {
+          const updatedContent = section.content.filter((_, idx) => idx !== index);
+          return { ...section, content: updatedContent };
+        }
+        return section;
+      })
+    );
+  };
+
+  const handleIndent = (sectionId, index) => {
+    setSections((prevSections) =>
+      prevSections.map((section) => {
+        if (section.id === sectionId) {
+          const updatedContent = [...section.content];
+          if (!updatedContent[index].text.startsWith('#INDENT#')) {
+            updatedContent[index].text = `#INDENT#${updatedContent[index].text}`;
+          }
+          return { ...section, content: updatedContent };
+        }
+        return section;
+      })
+    );
+  };
+  
+  const handleUnindent = (sectionId, index) => {
+    setSections((prevSections) =>
+      prevSections.map((section) => {
+        if (section.id === sectionId) {
+          const updatedContent = [...section.content];
+          if (updatedContent[index].text.startsWith('#INDENT#')) {
+            updatedContent[index].text = updatedContent[index].text.replace('#INDENT#', '');
+          }
+          return { ...section, content: updatedContent };
+        }
+        return section;
+      })
+    );
+  };
+  
+  // Function to handle when the user finishes typing the word
+const handleWordBlur = async () => {
+  if (word.trim() === '') return;
+
+  setIsLoadingWordInfo(true);
+
+  try {
+    const wordDoc = await getDoc(doc(db, 'JSON', word.trim()));
+    if (wordDoc.exists()) {
+      const data = wordDoc.data();
+
+      setMeaning(data.shortDefinition || '');
+      setExampleSentence(data.exampleSentence || '');
+      setPartOfSpeech(data.partOfSpeech || '');
+
+      console.log('Fetched word information:', data);
+    } else {
+      setMeaning('');
+      setExampleSentence('');
+      setPartOfSpeech('');
+
+      console.warn(`Word "${word}" not found in JSON collection.`);
+    }
+  } catch (error) {
+    console.error('Error fetching word info:', error);
+  } finally {
+    setIsLoadingWordInfo(false);
+  }
+};
 
   // Helper function to determine if a color is dark based on hex
   const isDarkColor = (hex) => {
@@ -1061,15 +1177,56 @@ const Hive = () => {
                   )}
                   
                   {section.type === 'bullet' && (
-                    <textarea
-                      className="w-full p-2 rounded bg-[#444444] text-white focus:outline-none resize-none"
-                      value={section.content}
-                      onChange={(e) => handleSectionChange(section.id, e.target.value)}
-                      required
-                      rows={3}
-                      placeholder="Enter bullet points (one per line)"
-                    ></textarea>
+                    <div>
+                      {section.content.map((bulletPoint, idx) => (
+                        <div key={idx} className="flex items-center mb-2">
+                          {/* Static Bullet Point Symbol */}
+                          <span className="text-white mr-2">•</span>
+                          <textarea
+                            className="flex-1 p-2 rounded bg-[#444444] text-white focus:outline-none resize-none overflow-hidden"
+                            value={bulletPoint.text}
+                            onChange={(e) => handleBulletPointChange(section.id, idx, e.target.value)}
+                            rows={1}
+                            placeholder="Bullet point text"
+                          />
+                          <div className="flex space-x-2 ml-2">
+                            <button
+                              type="button"
+                              className="text-gray-400 hover:text-red-500"
+                              onClick={() => removeBulletPoint(section.id, idx)}
+                              title="Remove Bullet Point"
+                            >
+                              <FaTrashAlt />
+                            </button>
+                            <button
+                              type="button"
+                              className="text-gray-400 hover:text-green-500"
+                              onClick={() => handleIndent(section.id, idx)}
+                              title="Indent"
+                            >
+                              &#8679;
+                            </button>
+                            <button
+                              type="button"
+                              className="text-gray-400 hover:text-blue-500"
+                              onClick={() => handleUnindent(section.id, idx)}
+                              title="Unindent"
+                            >
+                              &#8681;
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        className="flex items-center text-gray-300 hover:text-white mt-2"
+                        onClick={() => addBulletPoint(section.id)}
+                      >
+                        <FaPencilAlt className="mr-2" /> Add Bullet Point
+                      </button>
+                    </div>
                   )}
+
                   
                   {section.type === 'header' && (
                     <input
@@ -1079,6 +1236,17 @@ const Hive = () => {
                       onChange={(e) => handleSectionChange(section.id, e.target.value)}
                       required
                       placeholder="Enter header text"
+                    />
+                  )}
+
+                  {section.type === 'subheading' && (
+                    <input
+                      type="text"
+                      className="w-full p-2 rounded bg-[#444444] text-white focus:outline-none"
+                      value={section.content}
+                      onChange={(e) => handleSectionChange(section.id, e.target.value)}
+                      required
+                      placeholder="Enter subheading text"
                     />
                   )}
                   
@@ -1111,7 +1279,7 @@ const Hive = () => {
                       className="bg-[#202020] text-white px-6 py-4 rounded-lg border border-[#ffa500] w-full text-left flex justify-between items-center hover:bg-[#333333] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ffa500]"
                       onClick={() => setShowSectionDropdown(!showSectionDropdown)}
                     >
-                      <span>+ Add Section</span>
+                      <span>Add Section</span>
                       <svg
                         className="w-5 h-5 ml-2 -mr-1"
                         xmlns="http://www.w3.org/2000/svg"
@@ -1152,6 +1320,13 @@ const Hive = () => {
                             Header
                           </button>
                           <button
+                            onClick={() => { addSection('subheading'); setShowSectionDropdown(false); }}
+                            className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#ffa500] hover:text-black"
+                            role="menuitem"
+                          >
+                            Subheading
+                          </button>
+                          <button
                             onClick={() => { addSection('image'); setShowSectionDropdown(false); }}
                             className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#ffa500] hover:text-black"
                             role="menuitem"
@@ -1185,37 +1360,6 @@ const Hive = () => {
 
               {/* Word Field - Only visible when creating or editing WOTD */}
               {(type === 'WOTD' || (!isCreatingPost && selectedPost && selectedPost.type === 'WOTD')) && (
-                <div className="mb-4 flex items-center">
-                  {/* Loading Indicator */}
-                  {isLoadingWordInfo && (
-                    <div className="ml-2">
-                      <svg
-                        className="animate-spin h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v8H4z"
-                        ></path>
-                      </svg>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Word Field - Only visible when editing WOTD */}
-              {!isCreatingPost && selectedPost && selectedPost.type === 'WOTD' && (
                 <div className="mb-4">
                   <label className="block text-gray-300 mb-2">
                     Word<span className="text-red-500">*</span>:
@@ -1225,9 +1369,36 @@ const Hive = () => {
                     className="w-full p-2 rounded bg-[#333333] text-white focus:outline-none"
                     value={word}
                     onChange={(e) => setWord(e.target.value)}
+                    onBlur={handleWordBlur} // Add this line
                     required
                     placeholder="Enter word"
                   />
+                </div>
+              )}
+
+              {/* Loading Indicator */}
+              {isLoadingWordInfo && (
+                <div className="ml-2">
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8H4z"
+                    ></path>
+                  </svg>
                 </div>
               )}
 
@@ -1386,7 +1557,7 @@ const Hive = () => {
                 (!isCreatingPost && selectedPost && selectedPost.type === 'Article')) && (
                 <div className="mb-4">
                   <label className="block text-gray-300 mb-2">
-                    Image:
+                    Top Image:
                   </label>
                   {/* Display Current Image if Available */}
                   {imageUrl && (
