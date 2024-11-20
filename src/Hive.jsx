@@ -61,13 +61,13 @@ const Hive = () => {
   const [type, setType] = useState(''); // 'Announcement', 'Article', 'WOTD'
   const [category, setCategory] = useState(''); // For Articles
   const [subDetails, setSubDetails] = useState(''); // For Announcements (replacing description)
-  const [announcementActualDate, setAnnouncementActualDate] = useState(''); // For Announcements (editable date)
   const [word, setWord] = useState(''); // For WOTD (wordName)
   const [meaning, setMeaning] = useState(''); // For WOTD (read-only)
   const [exampleSentence, setExampleSentence] = useState(''); // For WOTD (read-only)
   const [partOfSpeech, setPartOfSpeech] = useState(''); // For WOTD (read-only)
   const [wordActualDate, setWordActualDate] = useState(''); // For WOTD (editable)
-
+  const [announcementActualDate, setAnnouncementActualDate] = useState(''); // For Announcements (editable date)
+  const [articleActualDate, setArticleActualDate] = useState('');
   const [userGroups, setUserGroups] = useState([]);
   const [selectedUserGroupsOptions, setSelectedUserGroupsOptions] = useState([]);
   const [allUserGroups, setAllUserGroups] = useState([]); // All user groups from Firestore
@@ -449,6 +449,31 @@ const Hive = () => {
     };
 
     if (type === 'Article') {
+
+      if (!articleActualDate) {
+        alert('Please select the Article Actual Date.');
+        console.log('Validation failed: Missing articleActualDate.');
+        return;
+      }
+
+      const [year, month, day] = articleActualDate.split('-').map(Number);
+      if (
+        isNaN(year) ||
+        isNaN(month) ||
+        isNaN(day) ||
+        year < 2024 ||
+        month < 1 ||
+        month > 12 ||
+        day < 1 ||
+        day > 31
+      ) {
+        alert('Invalid date format for Article Actual Date.');
+        console.log('Validation failed: Invalid articleActualDate.');
+        return;
+      }
+
+      const localDate = new Date(year, month - 1, day, 0, 0, 0);
+
       postData = {
         ...postData,
         name: title,
@@ -457,6 +482,9 @@ const Hive = () => {
         sections, // Include sections array
         conclusion,
         imageUrl: uploadedImageUrl || null,
+        articleActualDate: Timestamp.fromDate(localDate),
+        likes: selectedPost?.likes || 0, // Preserve existing likes if editing
+        userId: selectedPost?.userId || (currentUser ? currentUser.uid : null),
       };
     } else if (type === 'Announcement') {
 
@@ -790,6 +818,11 @@ const Hive = () => {
       setIntroduction(post.introduction || '');
       setSections(post.sections || []); // Load sections
       setConclusion(post.conclusion || '');
+      setArticleActualDate(
+        post.articleActualDate && post.articleActualDate.toDate
+          ? post.articleActualDate.toDate().toISOString().split('T')[0]
+          : post.articleActualDate || ''
+      );
     } else if (post.type === 'WOTD') {
       setWord(post.wordName || '');
     } else if (post.type === 'Announcement') {
@@ -1061,11 +1094,9 @@ const handleWordBlur = async () => {
                     Announcement Date: {post.announcementActualDate.toDate().toLocaleDateString()}
                   </p>
                 )}
-                {post.type === 'Article' && post.introduction && (
-                  <p className="text-gray-300 mb-3">
-                    {post.introduction.length > 100
-                      ? `${post.introduction.substring(0, 100)}...`
-                      : post.introduction}
+                {post.type === 'Article' && post.articleActualDate && (
+                  <p className="text-gray-400 mb-3">
+                    Article Actual Date: {post.articleActualDate.toDate().toLocaleDateString()}
                   </p>
                 )}
                 {post.type === 'WOTD' && post.wordActualDate && (
@@ -1456,6 +1487,23 @@ const handleWordBlur = async () => {
                     onChange={(e) => setCategory(e.target.value)}
                     required
                     placeholder="e.g., Technology"
+                  />
+                </div>
+              )}
+
+              {/* Article Actual Date (for Article) */}
+              {(type === 'Article' ||
+                (!isCreatingPost && selectedPost && selectedPost.type === 'Article')) && (
+                <div className="mb-4">
+                  <label className="block text-gray-300 mb-2">
+                    Article Actual Date<span className="text-red-500">*</span>:
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full p-2 rounded bg-[#333333] text-white focus:outline-none"
+                    value={articleActualDate}
+                    onChange={(e) => setArticleActualDate(e.target.value)}
+                    required
                   />
                 </div>
               )}
