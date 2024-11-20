@@ -61,6 +61,7 @@ const Hive = () => {
   const [type, setType] = useState(''); // 'Announcement', 'Article', 'WOTD'
   const [category, setCategory] = useState(''); // For Articles
   const [subDetails, setSubDetails] = useState(''); // For Announcements (replacing description)
+  const [announcementActualDate, setAnnouncementActualDate] = useState(''); // For Announcements (editable date)
   const [word, setWord] = useState(''); // For WOTD (wordName)
   const [meaning, setMeaning] = useState(''); // For WOTD (read-only)
   const [exampleSentence, setExampleSentence] = useState(''); // For WOTD (read-only)
@@ -285,6 +286,7 @@ const Hive = () => {
     setExampleSentence('');
     setPartOfSpeech('');
     setWordActualDate('');
+    setAnnouncementActualDate(''); 
     setUserGroups([]);
     setSelectedUserGroupsOptions([]);
     setImageUrl('');
@@ -457,13 +459,41 @@ const Hive = () => {
         imageUrl: uploadedImageUrl || null,
       };
     } else if (type === 'Announcement') {
+
+      if (!announcementActualDate) {
+        alert('Please select the Announcement Date.');
+        console.log('Validation failed: Missing announcementActualDate.');
+        return;
+      }
+
+      const [year, month, day] = announcementActualDate.split('-').map(Number);
+      if (
+        isNaN(year) ||
+        isNaN(month) ||
+        isNaN(day) ||
+        year < 2024 ||
+        month < 1 ||
+        month > 12 ||
+        day < 1 ||
+        day > 31
+      ) {
+        alert('Invalid date format for Announcement Date.');
+        console.log('Validation failed: Invalid announcementActualDate.');
+        return;
+      }
+
+      const localDate = new Date(year, month - 1, day, 0, 0, 0);
+
       postData = {
         ...postData,
         name: title,
-        subDetails,likes: 0, // Initialize likes to 0
-        announcementId: postId, // Store Post ID
-        userId: currentUser ? currentUser.uid : null, 
+        subDetails,
+        announcementActualDate: Timestamp.fromDate(localDate),
+        likes: selectedPost?.likes || 0, // Preserve existing likes
+        announcementId: selectedPost?.announcementId || postId, // Preserve existing ID
+        userId: selectedPost?.userId || (currentUser ? currentUser.uid : null),
       };
+
       if (!currentUser) {
         alert('User not authenticated. Please log in to create an announcement.');
         console.log('User authentication missing.');
@@ -765,6 +795,11 @@ const Hive = () => {
     } else if (post.type === 'Announcement') {
       setTitle(post.name || '');
       setSubDetails(post.subDetails || '');
+      setAnnouncementActualDate(
+        post.announcementActualDate && post.announcementActualDate.toDate
+          ? post.announcementActualDate.toDate().toISOString().split('T')[0]
+          : post.announcementActualDate || ''
+      );
     }
     setType(post.type || '');
     setCategory(post.category || '');
@@ -1021,6 +1056,11 @@ const handleWordBlur = async () => {
                 {post.type === 'Article' && post.category && (
                   <p className="text-gray-400 mb-3">Category: {post.category}</p>
                 )}
+                {post.type === 'Announcement' && post.announcementActualDate && (
+                  <p className="text-gray-400 mb-3">
+                    Announcement Date: {post.announcementActualDate.toDate().toLocaleDateString()}
+                  </p>
+                )}
                 {post.type === 'Article' && post.introduction && (
                   <p className="text-gray-300 mb-3">
                     {post.introduction.length > 100
@@ -1030,7 +1070,7 @@ const handleWordBlur = async () => {
                 )}
                 {post.type === 'WOTD' && post.wordActualDate && (
                   <p className="text-gray-400 mb-3">
-                    Actual Word Date: {post.wordActualDate.toDate().toLocaleDateString()}
+                    WOTD Date: {post.wordActualDate.toDate().toLocaleDateString()}
                   </p>
                 )}
                 {/* User Groups */}
@@ -1439,6 +1479,23 @@ const handleWordBlur = async () => {
                 </div>
               )}
 
+              {/* Announcement Actual Date (for Announcement) */}
+              {(type === 'Announcement' ||
+                (!isCreatingPost && selectedPost && selectedPost.type === 'Announcement')) && (
+                <div className="mb-4">
+                  <label className="block text-gray-300 mb-2">
+                    Announcement Date<span className="text-red-500">*</span>:
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full p-2 rounded bg-[#333333] text-white focus:outline-none"
+                    value={announcementActualDate}
+                    onChange={(e) => setAnnouncementActualDate(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+
               {/* Word Information (for WOTD) */}
               {(type === 'WOTD' ||
                 (!isCreatingPost && selectedPost && selectedPost.type === 'WOTD')) && (
@@ -1485,7 +1542,7 @@ const handleWordBlur = async () => {
                   {/* Actual Word Date - Editable */}
                   <div className="mb-4">
                     <label className="block text-gray-300 mb-2">
-                      Actual Word Date<span className="text-red-500">*</span>:
+                      WOTD Date<span className="text-red-500">*</span>:
                     </label>
                     <input
                       type="date"
