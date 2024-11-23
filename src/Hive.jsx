@@ -9,8 +9,8 @@ import {
   deleteDoc,
   getDoc,
   Timestamp,
-} from 'firebase/firestore'; // Firestore functions
-import { db, storage } from './firebaseConfig'; // Firebase config (ensure storage is exported)
+} from 'firebase/firestore';
+import { db, storage } from './firebaseConfig';
 import {
   FaTrashAlt,
   FaUpload,
@@ -22,7 +22,7 @@ import {
   ref as storageRef,
   uploadBytes,
   getDownloadURL,
-} from 'firebase/storage'; // Firebase Storage functions
+} from 'firebase/storage';
 import Select from 'react-select';
 
 import { getAuth } from 'firebase/auth';
@@ -293,15 +293,17 @@ const Hive = () => {
     setImageFile(null);
     setIntroduction('');
     setConclusion('');
+    setSections([]);
     setIsLoadingWordInfo(false);
   };
 
+  // Updated addSection function
   const addSection = (type) => {
     let newSection;
-    if (type === 'bullet') {
-      newSection = { id: Date.now(), type, content: [{ bullet: '•', text: '' }] };
+    if (type === 'bulletPoint') {
+      newSection = { id: Date.now(), type, bulletPoints: [''] };
     } else if (type === 'image') {
-      newSection = { id: Date.now(), type, content: '' };
+      newSection = { id: Date.now(), type, imageUrl: '' };
     } else {
       newSection = { id: Date.now(), type, content: '' };
     }
@@ -759,10 +761,11 @@ const Hive = () => {
 
   // Handler to update section content
   const handleSectionChange = (id, value) => {
-    const updatedSections = sections.map((section) =>
-      section.id === id ? { ...section, content: value } : section
+    setSections((prevSections) =>
+      prevSections.map((section) =>
+        section.id === id ? { ...section, content: value } : section
+      )
     );
-    setSections(updatedSections);
     console.log(`Updated section ${id} content.`);
   };
 
@@ -800,7 +803,7 @@ const Hive = () => {
 
       // Update the section with the image URL
       const updatedSections = sections.map((section) =>
-        section.id === id ? { ...section, content: url } : section
+        section.id === id ? { ...section, imageUrl: url } : section
       );
       setSections(updatedSections);
       console.log(`Uploaded image for section ${id}: ${url}`);
@@ -862,104 +865,106 @@ const Hive = () => {
     }
   };  
 
+  // Handle BulletPoint Section Changes
   const handleBulletPointChange = (sectionId, index, value) => {
     setSections((prevSections) =>
       prevSections.map((section) => {
         if (section.id === sectionId) {
-          const updatedContent = [...section.content];
-          updatedContent[index].text = value;
-          return { ...section, content: updatedContent };
+          const updatedBulletPoints = section.bulletPoints.map((bp, idx) =>
+            idx === index ? value : bp
+          );
+          return { ...section, bulletPoints: updatedBulletPoints };
         }
         return section;
       })
     );
+    console.log(`Updated bullet point ${index} in section ${sectionId}.`);
   };
 
   const addBulletPoint = (sectionId) => {
     setSections((prevSections) =>
-      prevSections.map((section) => {
-        if (section.id === sectionId) {
-          return {
-            ...section,
-            content: [...section.content, { bullet: '•', text: '' }],
-          };
-        }
-        return section;
-      })
+      prevSections.map((section) =>
+        section.id === sectionId
+          ? { ...section, bulletPoints: [...section.bulletPoints, ''] }
+          : section
+      )
     );
+    console.log(`Added a new bullet point to section ${sectionId}.`);
   };
 
   const removeBulletPoint = (sectionId, index) => {
     setSections((prevSections) =>
-      prevSections.map((section) => {
-        if (section.id === sectionId) {
-          const updatedContent = section.content.filter((_, idx) => idx !== index);
-          return { ...section, content: updatedContent };
-        }
-        return section;
-      })
+      prevSections.map((section) =>
+        section.id === sectionId
+          ? {
+              ...section,
+              bulletPoints: section.bulletPoints.filter((_, idx) => idx !== index),
+            }
+          : section
+      )
     );
+    console.log(`Removed bullet point ${index} from section ${sectionId}.`);
   };
 
   const handleIndent = (sectionId, index) => {
     setSections((prevSections) =>
       prevSections.map((section) => {
         if (section.id === sectionId) {
-          const updatedContent = [...section.content];
-          if (!updatedContent[index].text.startsWith('#INDENT#')) {
-            updatedContent[index].text = `#INDENT#${updatedContent[index].text}`;
-          }
-          return { ...section, content: updatedContent };
+          const updatedBulletPoints = section.bulletPoints.map((bp, idx) =>
+            idx === index ? `#INDENT#${bp}` : bp
+          );
+          return { ...section, bulletPoints: updatedBulletPoints };
         }
         return section;
       })
     );
+    console.log(`Indented bullet point ${index} in section ${sectionId}.`);
   };
   
   const handleUnindent = (sectionId, index) => {
     setSections((prevSections) =>
       prevSections.map((section) => {
         if (section.id === sectionId) {
-          const updatedContent = [...section.content];
-          if (updatedContent[index].text.startsWith('#INDENT#')) {
-            updatedContent[index].text = updatedContent[index].text.replace('#INDENT#', '');
-          }
-          return { ...section, content: updatedContent };
+          const updatedBulletPoints = section.bulletPoints.map((bp, idx) =>
+            idx === index ? bp.replace('#INDENT#', '') : bp
+          );
+          return { ...section, bulletPoints: updatedBulletPoints };
         }
         return section;
       })
     );
+    console.log(`Unindented bullet point ${index} in section ${sectionId}.`);
   };
   
   // Function to handle when the user finishes typing the word
-const handleWordBlur = async () => {
-  if (word.trim() === '') return;
+  const handleWordBlur = async () => {
+    if (word.trim() === '') return;
 
-  setIsLoadingWordInfo(true);
+    setIsLoadingWordInfo(true);
 
-  try {
-    const wordDoc = await getDoc(doc(db, 'JSON', word.trim()));
-    if (wordDoc.exists()) {
-      const data = wordDoc.data();
+    try {
+      const wordDoc = await getDoc(doc(db, 'JSON', word.trim()));
+      if (wordDoc.exists()) {
+        const data = wordDoc.data();
 
-      setMeaning(data.shortDefinition || '');
-      setExampleSentence(data.exampleSentence || '');
-      setPartOfSpeech(data.partOfSpeech || '');
+        setMeaning(data.shortDefinition || '');
+        setExampleSentence(data.exampleSentence || '');
+        setPartOfSpeech(data.partOfSpeech || '');
 
-      console.log('Fetched word information:', data);
-    } else {
-      setMeaning('');
-      setExampleSentence('');
-      setPartOfSpeech('');
+        console.log('Fetched word information:', data);
+      } else {
+        setMeaning('');
+        setExampleSentence('');
+        setPartOfSpeech('');
 
-      console.warn(`Word "${word}" not found in JSON collection.`);
+        console.warn(`Word "${word}" not found in JSON collection.`);
+      }
+    } catch (error) {
+      console.error('Error fetching word info:', error);
+    } finally {
+      setIsLoadingWordInfo(false);
     }
-  } catch (error) {
-    console.error('Error fetching word info:', error);
-  } finally {
-    setIsLoadingWordInfo(false);
-  }
-};
+  };
 
   // Helper function to determine if a color is dark based on hex
   const isDarkColor = (hex) => {
@@ -1247,15 +1252,15 @@ const handleWordBlur = async () => {
                     ></textarea>
                   )}
                   
-                  {section.type === 'bullet' && (
+                  {section.type === 'bulletPoint' && (
                     <div>
-                      {section.content.map((bulletPoint, idx) => (
+                      {section.bulletPoints.map((bulletPoint, idx) => (
                         <div key={idx} className="flex items-center mb-2">
                           {/* Static Bullet Point Symbol */}
                           <span className="text-white mr-2">•</span>
                           <textarea
                             className="flex-1 p-2 rounded bg-[#444444] text-white focus:outline-none resize-none overflow-hidden"
-                            value={bulletPoint.text}
+                            value={bulletPoint}
                             onChange={(e) => handleBulletPointChange(section.id, idx, e.target.value)}
                             rows={1}
                             placeholder="Bullet point text"
@@ -1298,7 +1303,6 @@ const handleWordBlur = async () => {
                     </div>
                   )}
 
-                  
                   {section.type === 'header' && (
                     <input
                       type="text"
@@ -1310,14 +1314,14 @@ const handleWordBlur = async () => {
                     />
                   )}
 
-                  {section.type === 'subheading' && (
+                  {section.type === 'subheader' && (
                     <input
                       type="text"
                       className="w-full p-2 rounded bg-[#444444] text-white focus:outline-none"
                       value={section.content}
                       onChange={(e) => handleSectionChange(section.id, e.target.value)}
                       required
-                      placeholder="Enter subheading text"
+                      placeholder="Enter subheader text"
                     />
                   )}
                   
@@ -1328,9 +1332,9 @@ const handleWordBlur = async () => {
                         accept="image/jpeg, image/png"
                         onChange={(e) => handleImageSectionUpload(section.id, e.target.files[0])}
                       />
-                      {section.content && (
+                      {section.imageUrl && (
                         <img
-                          src={section.content}
+                          src={section.imageUrl}
                           alt="Section"
                           className="ml-4 w-32 h-32 object-cover rounded"
                         />
@@ -1377,7 +1381,7 @@ const handleWordBlur = async () => {
                             Paragraph
                           </button>
                           <button
-                            onClick={() => { addSection('bullet'); setShowSectionDropdown(false); }}
+                            onClick={() => { addSection('bulletPoint'); setShowSectionDropdown(false); }}
                             className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#ffa500] hover:text-black"
                             role="menuitem"
                           >
@@ -1391,11 +1395,11 @@ const handleWordBlur = async () => {
                             Header
                           </button>
                           <button
-                            onClick={() => { addSection('subheading'); setShowSectionDropdown(false); }}
+                            onClick={() => { addSection('subheader'); setShowSectionDropdown(false); }}
                             className="w-full text-left px-4 py-2 text-sm text-white hover:bg-[#ffa500] hover:text-black"
                             role="menuitem"
                           >
-                            Subheading
+                            Subheader
                           </button>
                           <button
                             onClick={() => { addSection('image'); setShowSectionDropdown(false); }}
