@@ -287,6 +287,7 @@ const Hive = () => {
     setPartOfSpeech('');
     setWordActualDate('');
     setAnnouncementActualDate(''); 
+    setArticleActualDate('');
     setUserGroups([]);
     setSelectedUserGroupsOptions([]);
     setImageUrl('');
@@ -485,6 +486,7 @@ const Hive = () => {
         conclusion,
         imageUrl: uploadedImageUrl || null,
         articleActualDate: Timestamp.fromDate(localDate),
+        articleId: postId, // <-- **Added this line**
         likes: selectedPost?.likes || 0, // Preserve existing likes if editing
         userId: selectedPost?.userId || (currentUser ? currentUser.uid : null),
       };
@@ -674,7 +676,7 @@ const Hive = () => {
           if (selectedPost.type === 'Announcement') {
             // Preserve likes and userId
             updatedPostData.likes = selectedPost.likes || 0;
-            updatedPostData.announcementId = selectedPost.announcementId || postId;
+            updatedPostData.announcementId = selectedPost.announcementId || postId; // Already handled
             updatedPostData.userId = selectedPost.userId || (currentUser ? currentUser.uid : null);
           }
 

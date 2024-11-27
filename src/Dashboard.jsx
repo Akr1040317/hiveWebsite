@@ -12,12 +12,14 @@ import {
   FaHive,
   FaBug,
   FaComment,
+  FaTools,
 } from "react-icons/fa"; // Import icons
 import { useNavigate } from "react-router-dom"; // Import useNavigate from react-router-dom
 import "./Dashboard.css";
 import QuizManagement from './QuizManagement';
 import LessonManagement from './LessonManagement';
 import Hive from './Hive';
+import Tools from './Tools';
 
 
 // Mode0: Your original welcome page content
@@ -196,6 +198,19 @@ export default function Dashboard() {
                       <FaChartLine className="icon" />
                       <span className="grow py-2">Analytics</span>
                     </a>
+
+                    <a
+                      href="#"
+                      className={`group flex items-center gap-2 rounded-lg px-2.5 text-sm font-medium ${
+                        activeView === "tools"
+                          ? "bg-[#303030] text-white"
+                          : "text-gray-300 hover:bg-[#ffa500]/10 hover:shadow-[0_0_10px_#ffa500]"
+                      }`}
+                      onClick={() => setActiveView("tools")}
+                    >
+                      <FaTools className="icon" />
+                      <span className="grow py-2">Tools</span>
+                    </a>
                   </>
                 )}
               </nav>
@@ -261,6 +276,8 @@ export default function Dashboard() {
               <LessonManagement /> // Render Lesson Management
             ) : activeView === "hive" ? (
               <Hive /> // Render Hive Management
+            ) : activeView === "tools" ? (
+              <Tools /> // Render Tools Page
             ) : (
               <Mode0 /> // Default to Welcome Page if no match
             )}
