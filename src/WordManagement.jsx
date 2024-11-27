@@ -7,19 +7,31 @@ import {
   updateDoc,
   deleteDoc,
 } from 'firebase/firestore';
-import { db } from './firebaseConfig'; // Adjust the path based on your project structure
-import { FaSearch, FaPlus, FaEdit, FaSave, FaTimes, FaTrashAlt } from 'react-icons/fa';
+import { db, storage } from './firebaseConfig'; // Ensure the correct path
+import {
+  FaSearch,
+  FaEdit,
+  FaSave,
+  FaTimes,
+  FaTrashAlt,
+  FaUpload,
+} from 'react-icons/fa';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const WordManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [wordData, setWordData] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [newWordData, setNewWordData] = useState({});
-  const [isCreatingNewWord, setIsCreatingNewWord] = useState(false); // New state variable
+  const [newWordData, setNewWordData] = useState({ pronunciations: [], offensive: false }); // Initialize 'offensive' to false
+  const [isCreatingNewWord, setIsCreatingNewWord] = useState(false); // State to manage creation form visibility
 
   // States for handling delete confirmation modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDeleteSuccessModal, setShowDeleteSuccessModal] = useState(false);
+
+  // States for handling pronunciation uploads
+  const [audioFile, setAudioFile] = useState(null);
+  const [audioUploading, setAudioUploading] = useState(false);
 
   // Function to handle search
   const handleSearch = async (e) => {
@@ -37,7 +49,7 @@ const WordManagement = () => {
         setIsCreatingNewWord(false);
       } else {
         setWordData(null);
-        setNewWordData({}); // Reset newWordData to prevent pre-filling
+        setNewWordData({ pronunciations: [], offensive: false }); // Initialize pronunciations and offensive
         setIsCreatingNewWord(true); // Show creation form
       }
     } catch (error) {
@@ -57,14 +69,23 @@ const WordManagement = () => {
         [name]: checked,
       });
     }
-    // Handle array (pronunciations)
+    // Handle array (pronunciations) while preserving audio URLs
     else if (name === 'pronunciations') {
+      const textPronunciations = value
+        .split(',')
+        .map((pron) => pron.trim())
+        .filter((pron) => pron !== '');
+
+      // Preserve existing audio URLs
+      const audioPronunciations = newWordData.pronunciations
+        ? newWordData.pronunciations.filter((pron) =>
+            pron.startsWith('https://firebasestorage.googleapis.com')
+          )
+        : [];
+
       setNewWordData({
         ...newWordData,
-        pronunciations: value
-          .split(',')
-          .map((pron) => pron.trim())
-          .filter((pron) => pron !== ''),
+        pronunciations: [...audioPronunciations, ...textPronunciations],
       });
     }
     // Handle other input types
@@ -74,6 +95,64 @@ const WordManagement = () => {
         [name]: value,
       });
     }
+  };
+
+  // Function to handle audio file selection
+  const handleAudioFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type === 'audio/mpeg') {
+      setAudioFile(file);
+    } else {
+      alert('Please select a valid .mp3 file.');
+    }
+  };
+
+  // Function to upload audio file to Firebase Storage
+  const uploadAudio = async () => {
+    if (!audioFile) return null;
+
+    const fileName = `${Date.now()}_${audioFile.name}`;
+    const fileRef = storageRef(storage, `audios/${fileName}`);
+
+    try {
+      setAudioUploading(true);
+      await uploadBytes(fileRef, audioFile);
+      const downloadURL = await getDownloadURL(fileRef);
+      setAudioUploading(false);
+      return downloadURL;
+    } catch (error) {
+      console.error('Error uploading audio:', error);
+      alert('Failed to upload audio file.');
+      setAudioUploading(false);
+      return null;
+    }
+  };
+
+  // Function to handle pronunciation addition (audio)
+  const handleAddPronunciation = async () => {
+    if (audioFile) {
+      const audioURL = await uploadAudio();
+      if (audioURL) {
+        setNewWordData({
+          ...newWordData,
+          pronunciations: [...newWordData.pronunciations, audioURL],
+        });
+        setAudioFile(null); // Reset the audio file
+        alert('Audio pronunciation added successfully!');
+      }
+    } else {
+      alert('No audio file selected.');
+    }
+  };
+
+  // Function to handle removal of a pronunciation
+  const handleRemovePronunciation = (index) => {
+    const updatedPronunciations = [...newWordData.pronunciations];
+    updatedPronunciations.splice(index, 1);
+    setNewWordData({
+      ...newWordData,
+      pronunciations: updatedPronunciations,
+    });
   };
 
   // Function to handle update
@@ -112,8 +191,11 @@ const WordManagement = () => {
       }
 
       await setDoc(wordDocRef, newWordData);
-      setWordData(newWordData);
+      // Reset form after creation
+      setWordData(null);
+      setNewWordData({ pronunciations: [], offensive: false });
       setIsCreatingNewWord(false);
+      setSearchTerm(''); // Clear search term
       alert('Word created successfully!');
     } catch (error) {
       console.error('Error creating word:', error);
@@ -130,7 +212,7 @@ const WordManagement = () => {
     try {
       await deleteDoc(wordDocRef);
       setWordData(null);
-      setNewWordData({});
+      setNewWordData({ pronunciations: [], offensive: false });
       setIsEditing(false);
       setIsCreatingNewWord(false);
       setShowDeleteModal(false);
@@ -172,7 +254,7 @@ const WordManagement = () => {
             <h3 className="text-xl text-white">
               {isCreatingNewWord
                 ? 'Create New Word'
-                : `Word Details: ${wordData.id}`}
+                : `Word Details: ${wordData.headword}`}
             </h3>
             {!isCreatingNewWord && !isEditing && wordData && (
               <button
@@ -264,21 +346,80 @@ const WordManagement = () => {
 
             {/* Pronunciations */}
             <div>
-              <label className="block text-gray-300 mb-1">
-                Pronunciations (comma-separated):
-              </label>
-              <input
-                type="text"
-                name="pronunciations"
-                className="w-full p-2 rounded bg-[#303030] text-white focus:outline-none"
-                value={
-                  newWordData.pronunciations
-                    ? newWordData.pronunciations.join(', ')
-                    : ''
-                }
-                onChange={handleChange}
-                placeholder="e.g., /ˈæp.əl/, /ˈæp.l̩/"
-              />
+              <label className="block text-gray-300 mb-1">Pronunciations:</label>
+              <div className="flex items-center space-x-2">
+                {/* Text Input */}
+                <input
+                  type="text"
+                  name="pronunciations"
+                  className="flex-1 p-2 rounded bg-[#303030] text-white focus:outline-none"
+                  value={
+                    newWordData.pronunciations
+                      ? newWordData.pronunciations
+                          .filter(
+                            (pron) =>
+                              !pron.startsWith(
+                                'https://firebasestorage.googleapis.com'
+                              )
+                          )
+                          .join(', ')
+                      : ''
+                  }
+                  onChange={handleChange}
+                  placeholder="Enter pronunciations separated by commas"
+                />
+                {/* File Input */}
+                <input
+                  type="file"
+                  accept=".mp3"
+                  onChange={handleAudioFileChange}
+                  className="text-white"
+                />
+                {/* Upload Button */}
+                <button
+                  type="button"
+                  className="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 flex items-center"
+                  onClick={handleAddPronunciation}
+                  disabled={!audioFile || audioUploading}
+                >
+                  <FaUpload className="mr-2" />{' '}
+                  {audioUploading ? 'Uploading...' : 'Add Audio'}
+                </button>
+              </div>
+              {/* Display Pronunciations */}
+              <div className="mt-2">
+                {newWordData.pronunciations && newWordData.pronunciations.length > 0 ? (
+                  <ul className="list-disc list-inside text-gray-300">
+                    {newWordData.pronunciations.map((pron, index) => (
+                      <li key={index} className="flex items-center justify-between">
+                        {pron.startsWith(
+                          'https://firebasestorage.googleapis.com'
+                        ) ? (
+                          <audio
+                            controls
+                            src={pron}
+                            className="flex-1 mr-4"
+                          >
+                            Your browser does not support the audio element.
+                          </audio>
+                        ) : (
+                          <span>{pron}</span>
+                        )}
+                        <button
+                          type="button"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => handleRemovePronunciation(index)}
+                          title="Remove Pronunciation"
+                        >
+                          <FaTimes />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-400">No pronunciations added.</p>
+                )}
+              </div>
             </div>
 
             {/* Example Sentence */}
@@ -334,7 +475,7 @@ const WordManagement = () => {
                     className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center"
                     onClick={() => {
                       setIsCreatingNewWord(false);
-                      setNewWordData({});
+                      setNewWordData({ pronunciations: [], offensive: false });
                     }}
                   >
                     <FaTimes className="mr-2" /> Cancel
@@ -391,7 +532,7 @@ const WordManagement = () => {
             {/* Warning Message */}
             <p className="text-gray-300 mb-6">
               Are you sure you want to delete the word "
-              <strong>{wordData.id}</strong>"? This action{' '}
+              <strong>{wordData.headword}</strong>"? This action{' '}
               <span className="text-red-500">cannot be reversed</span>.
             </p>
 
