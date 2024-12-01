@@ -29,6 +29,8 @@ import LessonManagement from "./LessonManagement";
 import Mode0 from "./Mode0"; // Import the new Mode0 component
 import Lessons from "./Lessons";
 import Quizzes from './Quizzes';
+import Hive from './Hive';
+import Tools from './Tools';
 
 export default function Dashboard() {
   const [isCollapsed, setIsCollapsed] = useState(false);
