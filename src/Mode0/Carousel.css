@@ -1,0 +1,90 @@
+/* Carousel.css */
+
+/* Loader Styles */
+.loader {
+    border: 4px solid #f3f3f3; /* Light grey */
+    border-top: 4px solid #ffa500; /* Orange */
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  /* Carousel Container */
+  .carousel-container {
+    background-color: transparent; /* No background */
+    padding: 5px;
+    border-radius: 10px;
+  }
+  
+  /* Carousel Header */
+  .carousel-header h2 {
+    font-size: 1.5rem;
+    color: #ffffff;
+  }
+  
+  .carousel-header button {
+    font-size: 1rem;
+    color: #ffa500;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  
+  .carousel-header button:hover {
+    text-decoration: underline;
+  }
+  
+  /* Carousel Card */
+  .carousel-card {
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 240px; /* Set fixed width for consistent spacing */
+    transition: transform 0.3s ease, box-shadow 0.3s ease; /* Smooth hover effects */
+  }
+  
+  .carousel-card:hover {
+    transform: translateY(-5px); /* Slight lift on hover */
+  }
+  
+  /* Add margin to slick-slide > div */
+  .slick-slide > div {
+    margin: 0 24px; /* Increased horizontal spacing between cards */
+  }
+  
+  /* Category Image */
+  .carousel-card img {
+    width: 100%;
+    height: 200px; /* Increased height for better visibility */
+    object-fit: cover;
+    border-radius: 10px;
+  }
+  
+  /* Lock Icon */
+  .carousel-card .fa-lock {
+    color: #ffffff;
+  }
+  
+  /* Overlay Text */
+  .carousel-card .absolute {
+    /* Already handled inline */
+  }
+  
+  /* Category Title */
+  .carousel-card h3 {
+    font-size: 1.2rem;
+    color: #ffffff;
+    text-align: center;
+    margin-top: 10px;
+    font-weight: bold;
+  }
+  

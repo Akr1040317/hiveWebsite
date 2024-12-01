@@ -1,3 +1,5 @@
+// Dashboard.jsx
+
 import React, { useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth"; // Firebase imports
 import { getFirestore, doc, getDoc } from "firebase/firestore"; // Firestore imports
@@ -13,31 +15,20 @@ import {
   FaBug,
   FaComment,
   FaTools,
-} from "react-icons/fa"; // Import icons
+  FaBook,
+  FaChartBar,
+  FaTrophy,
+  FaUser,
+  FaInfoCircle,
+} from "react-icons/fa"; // Import additional icons
 import { useNavigate } from "react-router-dom"; // Import useNavigate from react-router-dom
 import "./Dashboard.css";
-import QuizManagement from './QuizManagement';
-import LessonManagement from './LessonManagement';
-import Hive from './Hive';
-import Tools from './Tools';
-
-
-// Mode0: Your original welcome page content
-const Mode0 = () => (
-  <div className="dashboard-card bg-[#202020] p-6 rounded-lg">
-    <h3 className="text-white text-xl mb-2">Welcome to the Hive Dashboard!</h3>
-    <p className="text-gray-300">
-      The Dashboard is your control center for managing content and tracking progress. Here are the features currently available:
-    </p>
-    <ul className="text-gray-400 list-disc ml-6 mt-4">
-      <li>View articles, make articles, view article analytics, edit articles</li>
-      <li>View quizzes, make quizzes, view quiz analytics, edit quizzes</li>
-      <li>View classrooms, make classrooms, view classroom analytics, edit classrooms</li>
-      <li>Make announcements</li>
-      <li>Release word of the day</li>
-    </ul>
-  </div>
-);
+import QuizManagement from "./QuizManagement";
+import LessonManagement from "./LessonManagement";
+// Import other components as needed
+import Mode0 from "./Mode0"; // Import the new Mode0 component
+import Lessons from "./Lessons";
+import Quizzes from './Quizzes';
 
 export default function Dashboard() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -47,6 +38,7 @@ export default function Dashboard() {
   const [currentUser, setCurrentUser] = useState(null); // To store user data from Firestore
   const [activeView, setActiveView] = useState("dashboard"); // State to handle view switching
   const [isAdmin, setIsAdmin] = useState(false); // State to track if the user is an admin
+  const [userTier, setUserTier] = useState(null); // State to track user tier
   const navigate = useNavigate(); // Initialize navigate
 
   const toggleSidebar = () => {
@@ -67,7 +59,7 @@ export default function Dashboard() {
       });
   };
 
-  // Fetch user data from Firestore and determine role
+  // Fetch user data from Firestore and determine role and tier
   const fetchUser = async (uid) => {
     const db = getFirestore();
     const userDocRef = doc(db, "users", uid);
@@ -78,6 +70,9 @@ export default function Dashboard() {
       setCurrentUser(userData); // Store current user data
       setUsername(userData.username); // Set the username
       setIsAdmin(userData.role === "admin"); // Check if the user is an admin
+      if (userData.role !== "admin") {
+        setUserTier(userData.tier); // Set the user tier if not admin
+      }
     } else {
       console.log("No such user found");
     }
@@ -119,12 +114,7 @@ export default function Dashboard() {
               href="#"
               className="group inline-flex items-center gap-2 text-lg font-bold tracking-wide text-gray-100"
             >
-              <img
-                src="/IconResized.png
-                "
-                alt="Gathr Logo"
-                className="gathr-logo"
-              />
+              <img src="/IconResized.png" alt="Gathr Logo" className="gathr-logo" />
               <span>Hive - Spell Intelligently</span>
             </a>
           </div>
@@ -133,11 +123,13 @@ export default function Dashboard() {
           <div className="overflow-y-auto flex-1">
             <div className="w-full p-4">
               <nav className="space-y-1">
-                {/* Home Option - Always Visible */}
+                {/* Common Home Option */}
                 <a
                   href="#"
                   className={`group flex items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-white ${
-                    activeView === "dashboard" ? "bg-[#303030]" : "hover:bg-[#ffa500]/10 hover:shadow-[0_0_10px_#ffa500]"
+                    activeView === "dashboard"
+                      ? "bg-[#303030]"
+                      : "hover:bg-[#ffa500]/10 hover:shadow-[0_0_10px_#ffa500]"
                   }`}
                   onClick={() => setActiveView("dashboard")}
                 >
@@ -146,7 +138,7 @@ export default function Dashboard() {
                 </a>
 
                 {/* Admin Only Options */}
-                {isAdmin && (
+                {isAdmin ? (
                   <>
                     <a
                       href="#"
@@ -181,7 +173,7 @@ export default function Dashboard() {
                       }`}
                       onClick={() => setActiveView("hive")}
                     >
-                      <FaBookOpen className="icon" />
+                      <FaHive className="icon" />
                       <span className="grow py-2">The Hive</span>
                     </a>
                     <a
@@ -198,7 +190,6 @@ export default function Dashboard() {
                       <FaChartLine className="icon" />
                       <span className="grow py-2">Analytics</span>
                     </a>
-
                     <a
                       href="#"
                       className={`group flex items-center gap-2 rounded-lg px-2.5 text-sm font-medium ${
@@ -210,6 +201,94 @@ export default function Dashboard() {
                     >
                       <FaTools className="icon" />
                       <span className="grow py-2">Tools</span>
+                    </a>
+                  </>
+                ) : (
+                  // Non-Admin Users with Tiers
+                  <>
+                    <a
+                      href="#"
+                      className={`group flex items-center gap-2 rounded-lg px-2.5 text-sm font-medium ${
+                        activeView === "lessons"
+                          ? "bg-[#303030] text-white"
+                          : "text-gray-300 hover:bg-[#ffa500]/10 hover:shadow-[0_0_10px_#ffa500]"
+                      }`}
+                      onClick={() => setActiveView("lessons")}
+                    >
+                      <FaBook className="icon" />
+                      <span className="grow py-2">Lessons</span>
+                    </a>
+                    <a
+                      href="#"
+                      className={`group flex items-center gap-2 rounded-lg px-2.5 text-sm font-medium ${
+                        activeView === "quizzes"
+                          ? "bg-[#303030] text-white"
+                          : "text-gray-300 hover:bg-[#ffa500]/10 hover:shadow-[0_0_10px_#ffa500]"
+                      }`}
+                      onClick={() => setActiveView("quizzes")}
+                    >
+                      <FaChalkboardTeacher className="icon" />
+                      <span className="grow py-2">Quizzes</span>
+                    </a>
+                    <a
+                      href="#"
+                      className={`group flex items-center gap-2 rounded-lg px-2.5 text-sm font-medium ${
+                        activeView === "hive"
+                          ? "bg-[#303030] text-white"
+                          : "text-gray-300 hover:bg-[#ffa500]/10 hover:shadow-[0_0_10px_#ffa500]"
+                      }`}
+                      onClick={() => setActiveView("hive")}
+                    >
+                      <FaHive className="icon" />
+                      <span className="grow py-2">The Hive</span>
+                    </a>
+                    <a
+                      href="#"
+                      className={`group flex items-center gap-2 rounded-lg px-2.5 text-sm font-medium ${
+                        activeView === "progress"
+                          ? "bg-[#303030] text-white"
+                          : "text-gray-300 hover:bg-[#ffa500]/10 hover:shadow-[0_0_10px_#ffa500]"
+                      }`}
+                      onClick={() => setActiveView("progress")}
+                    >
+                      <FaChartBar className="icon" />
+                      <span className="grow py-2">Progress</span>
+                    </a>
+                    <a
+                      href="#"
+                      className={`group flex items-center gap-2 rounded-lg px-2.5 text-sm font-medium ${
+                        activeView === "leaderboard"
+                          ? "bg-[#303030] text-white"
+                          : "text-gray-300 hover:bg-[#ffa500]/10 hover:shadow-[0_0_10px_#ffa500]"
+                      }`}
+                      onClick={() => setActiveView("leaderboard")}
+                    >
+                      <FaTrophy className="icon" />
+                      <span className="grow py-2">Leaderboard</span>
+                    </a>
+                    <a
+                      href="#"
+                      className={`group flex items-center gap-2 rounded-lg px-2.5 text-sm font-medium ${
+                        activeView === "profile"
+                          ? "bg-[#303030] text-white"
+                          : "text-gray-300 hover:bg-[#ffa500]/10 hover:shadow-[0_0_10px_#ffa500]"
+                      }`}
+                      onClick={() => setActiveView("profile")}
+                    >
+                      <FaUser className="icon" />
+                      <span className="grow py-2">Profile</span>
+                    </a>
+                    <a
+                      href="#"
+                      className={`group flex items-center gap-2 rounded-lg px-2.5 text-sm font-medium ${
+                        activeView === "about"
+                          ? "bg-[#303030] text-white"
+                          : "text-gray-300 hover:bg-[#ffa500]/10 hover:shadow-[0_0_10px_#ffa500]"
+                      }`}
+                      onClick={() => setActiveView("about")}
+                    >
+                      <FaInfoCircle className="icon" />
+                      <span className="grow py-2">About</span>
                     </a>
                   </>
                 )}
@@ -259,27 +338,51 @@ export default function Dashboard() {
             >
               {desktopSidebarOpen ? <FaAngleLeft /> : <FaBars />}
             </button>
-            <h1>Hive Dashboard [Beta]</h1>
+            <h1>Hive Dashboard</h1>
             <span className="text-gray-100 font-semibold">{username}</span>
           </div>
         </header>
 
         {/* Main Content */}
-        <div id="page-content" className="flex max-w-full flex-auto flex-col pt-12">
+        <div id="page-content" className="flex max-w-full flex-auto flex-col pt-16">
           <div className="mx-auto w-full max-w-10xl p-4 lg:p-8">
             {/* Conditionally Render Content */}
             {activeView === "dashboard" ? (
-              <Mode0 /> // Render Welcome Page
-            ) : activeView === "quizManagement" ? (
+              <Mode0
+                username={username}
+                points={currentUser?.pointsWeekly || 0}
+                profilePictureURL={currentUser?.profilePictureURL}
+                userRole={currentUser?.role || "userTier1"}
+              />
+            ) : isAdmin && activeView === "quizManagement" ? (
               <QuizManagement /> // Render Quiz Management
-            ) : activeView === "lessonManagement" ? (
+            ) : isAdmin && activeView === "lessonManagement" ? (
               <LessonManagement /> // Render Lesson Management
-            ) : activeView === "hive" ? (
+            ) : isAdmin && activeView === "hive" ? (
               <Hive /> // Render Hive Management
-            ) : activeView === "tools" ? (
+            ) : isAdmin && activeView === "tools" ? (
               <Tools /> // Render Tools Page
+            ) : !isAdmin && activeView === "lessons" ? (
+              <Lessons /> // Render Lessons Page
+            ) : !isAdmin && activeView === "quizzes" ? (
+              <Quizzes /> // Render Quizzes Page
+            ) : !isAdmin && activeView === "hive" ? (
+              <Hive /> // Render Hive Page for non-admin
+            ) : !isAdmin && activeView === "progress" ? (
+              <Progress /> // Render Progress Page
+            ) : !isAdmin && activeView === "leaderboard" ? (
+              <Leaderboard /> // Render Leaderboard Page
+            ) : !isAdmin && activeView === "profile" ? (
+              <Profile /> // Render Profile Page
+            ) : !isAdmin && activeView === "about" ? (
+              <About /> // Render About Page
             ) : (
-              <Mode0 /> // Default to Welcome Page if no match
+              <Mode0
+                username={username}
+                points={currentUser?.pointsWeekly || 0}
+                profilePictureURL={currentUser?.profilePictureURL}
+                userRole={currentUser?.role || "userTier1"}
+              />
             )}
           </div>
         </div>

@@ -1,0 +1,41 @@
+/* Lessons.css */
+
+.lessons-view {
+    background-color: #191919;
+    min-height: 100vh;
+    background-image: url('/bg3.png');
+    background-size: cover;
+    background-position: center;
+    padding-bottom: 20px;
+  }
+  
+  .lessons-header {
+    margin: 20px;
+    /* Additional styles if needed */
+  }
+  
+  .text-section {
+    margin: 20px;
+    text-align: left; /* Left-align the text */
+    color: white;
+  }
+  
+  .subtitle {
+    margin-top: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  
+  .categories-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Three columns */
+    gap: 20px;
+    padding: 0 20px;
+  }
+  
+  .no-lessons {
+    color: white;
+    text-align: center;
+    margin-top: 20px;
+  }
+  

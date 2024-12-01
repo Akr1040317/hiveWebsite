@@ -11,7 +11,9 @@ import LoginPage from "./LoginPage"; // Import the LoginPage component
 import SignupPage from "./SignupPage"; // Import the SignupPage component
 import Dashboard from "./Dashboard"; // Import the Dashboard component
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; // Import Routes and Route
-
+// In your main index.js or App.js
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 import "./assets/tailkit.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
