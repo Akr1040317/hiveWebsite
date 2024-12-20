@@ -17,7 +17,7 @@ export default function Contact() {
               will get back to your as soon as possible.
             </h3>
             <h3 className="mx-auto text-xl font-medium leading-relaxed text-gray-700 lg:w-2/3 dark:text-gray-300">
-              Phone: 832 879 3599 || Email: hivespelling@gmail.com || Address: 3718 SW 24th Ave, Gainesville, FL 32607
+              Phone: 832 879 3599 || Email: hivespelling@gmail.com 
             </h3>
           </div>
           {/* END Heading */}
