@@ -2,15 +2,15 @@ export default function Features() {
   return (
     <>
       {/* Features Section: Card Links */}
-      <div className="overflow-hidden bg-white">
+      <div id="features" className="overflow-hidden" style={{ backgroundColor: '#071017' }}>
         <div className="container mx-auto space-y-16 px-4 py-16 lg:px-8 lg:py-32 xl:max-w-7xl">
           {/* Heading */}
           <div className="text-center">
-            <h2 className="mb-4 text-4xl font-black text-black dark:text-white">
+            <h2 className="mb-4 text-4xl font-white text-white text-white">
               Discover Hive's Powerful Features
             </h2>
-            <div className="mx-auto mb-3 h-1.5 w-12 rounded-lg" style={{backgroundColor: '#f7971e'}} />
-            <h3 className="mx-auto text-xl font-medium leading-relaxed text-gray-700 lg:w-2/3 dark:text-gray-300">
+            <div className="mx-auto mb-3 h-1.5 w-80 rounded-lg" style={{backgroundColor: '#f7971e'}} />
+            <h3 className="mx-auto text-xl font-medium leading-relaxed text-gray-400 lg:w-2/3 dark:text-gray-300">
               Hive is packed with features designed to make spelling easy and fun. Explore the tools and benefits that come with our app.
             </h3>
           </div>

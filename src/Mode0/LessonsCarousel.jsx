@@ -7,14 +7,15 @@ import { getFirestore, collection, getDocs } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
 import SubscriptionModal from "../SubscriptionModal";
+import CategoryPopup from "./CategoryPopup"; // Import the CategoryPopup component
 import "./Carousel.css"; // Custom CSS for carousel styling
 
 import Lessons from "../Lessons"; // Adjust path based on your file structure
 
-
 const LessonsCarousel = ({ userRole }) => {
   const [categories, setCategories] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const navigate = useNavigate();
   const db = getFirestore();
@@ -80,24 +81,10 @@ const LessonsCarousel = ({ userRole }) => {
     fetchCategories();
   }, [db, storage]);
 
+  // Define the handleCategoryClick function
   const handleCategoryClick = (category) => {
-    const categoryId = category.categoryId || category.id;
-    if (!categoryId) {
-      console.warn(`Category ${category.id} is missing categoryId.`);
-      return;
-    }
-
-    const isAllowed =
-      allowedCategories.length === 0
-        ? true // If allowedCategories is empty, all are allowed (admin)
-        : allowedCategories.includes(categoryId);
-
-    if (isAllowed) {
-      navigate(`/categories/${category.id}`); // Navigate to category detail
-    } else {
-      setSelectedCategory(category);
-      setIsModalOpen(true);
-    }
+    setSelectedCategory(category);
+    setIsCategoryModalOpen(true);
   };
 
   // Sort categories: unlocked first, then locked
@@ -209,10 +196,17 @@ const LessonsCarousel = ({ userRole }) => {
         })}
       </Slider>
 
+      {/* Category Popup */}
+      <CategoryPopup
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        category={selectedCategory}
+      />
+
       {/* Subscription Modal */}
       <SubscriptionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
       />
     </div>
   );

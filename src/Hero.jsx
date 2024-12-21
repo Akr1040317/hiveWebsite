@@ -1,123 +1,141 @@
-import homeImage from './assets/home.png';
-import React from 'react';
-import { Link } from 'react-router-dom'; // Import Link from react-router-dom
+  import homeImage1 from './assets/home1.png';
+  import homeImage2 from './assets/home2.png';
+  import homeImage3 from './assets/home3.png';
+  import appIconImage from './assets/app-icon.jpg';
+  import React from 'react';
+  import { Link } from 'react-router-dom';
+  import { Link as ScrollLink } from 'react-scroll';  // <-- rename here
 
-export default function Hero() {
-  return (
-    <>
-      {/* Hero Section: Image Side with Gradient */}
-      <div className="relative overflow-hidden bg-white dark:bg-gray-900 dark:text-gray-100">
-        {/* Main Header */}
-        <header
-          id="page-header"
-          className="relative flex flex-none items-center py-8"
+  export default function Hero() {
+    return (
+      <>
+        <div
+          className="relative overflow-hidden text-gray-100"
+          style={{ backgroundColor: '#071017' }}
         >
-          {/* Main Header Content */}
-          <div className="container mx-auto flex flex-col gap-4 px-4 text-center md:flex-row md:items-center md:justify-between md:gap-0 lg:px-8 xl:max-w-6xl">
-            <div>
-              <a
-                href="#"
-                className="group inline-flex items-center gap-2 text-2xl font-bold tracking-wide text-black-900 hover:text-gray-600 dark:text-gray-100 dark:hover:text-gray-300"
-              >
-                <span>Hive - Spell Intelligently</span>
-              </a>
-            </div>
-            <div className="flex flex-col gap-4 text-center md:flex-row md:items-center md:justify-between md:gap-0">
-              <nav className="space-x-3 md:space-x-6">
+          {/* Main Header */}
+          <header
+            id="page-header"
+            className="relative flex flex-none items-center py-6 px-8"
+          >
+            <div className="container mx-auto flex items-center justify-between">
+              {/* Logo and Navigation */}
+              <div className="flex items-center space-x-24 px-8">
                 <a
                   href="#"
-                  className="group relative text-sm font-semibold text-gray-900 hover:text-black dark:text-gray-100 dark:hover:text-white"
+                  className="inline-flex items-center gap-3 text-2xl font-bold tracking-wide text-white hover:text-gray-400"
                 >
-                  <span
-                    className="absolute -inset-x-2.5 -inset-y-1.5 scale-0 rounded-xl bg-gray-100 transition ease-out group-hover:scale-100 dark:bg-gray-700/50"
-                    aria-hidden="true"
+                  <img
+                    src={appIconImage}
+                    alt="App Icon"
+                    className="w-8 h-8"
                   />
-                  <span className="relative">Features</span>
+                  <span>Hive</span>
                 </a>
-                <a
-                  href="#"
-                  className="group relative text-sm font-semibold text-gray-900 hover:text-black dark:text-gray-100 dark:hover:text-white"
-                >
-                  <span
-                    className="absolute -inset-x-2.5 -inset-y-1.5 scale-0 rounded-xl bg-gray-100 transition ease-out group-hover:scale-100 dark:bg-gray-700/50"
-                    aria-hidden="true"
-                  />
-                  <span className="relative">Partners</span>
-                </a>
-                <a
-                  href="#"
-                  className="group relative text-sm font-semibold text-gray-900 hover:text-black dark:text-gray-100 dark:hover:text-white"
-                >
-                  <span
-                    className="absolute -inset-x-2.5 -inset-y-1.5 scale-0 rounded-xl bg-gray-100 transition ease-out group-hover:scale-100 dark:bg-gray-700/50"
-                    aria-hidden="true"
-                  />
-                  <span className="relative">Start</span>
-                </a>
-                <a
-                  href="#"
-                  className="group relative text-sm font-semibold text-gray-900 hover:text-black dark:text-gray-100 dark:hover:text-white"
-                >
-                  <span
-                    className="absolute -inset-x-2.5 -inset-y-1.5 scale-0 rounded-xl bg-gray-100 transition ease-out group-hover:scale-100 dark:bg-gray-700/50"
-                    aria-hidden="true"
-                  />
-                  <span className="relative">Support</span>
-                </a>
-              </nav>
-              <div className="mx-6 hidden h-8 w-px bg-gradient-to-b from-transparent via-gray-300 to-transparent md:block dark:via-gray-700" />
-              {/* Updated Buttons with React Router Links */}
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-3">
+                <nav className="flex items-center space-x-8">
+                    <Link to="home" smooth={true} duration={500} className="text-md font-medium text-[#ffa500] hover:text-white">
+                    Home
+                  </Link>
+                  <ScrollLink to="features" smooth={true} duration={500} className="text-md font-medium text-gray-300 hover:text-white">
+                  Features
+                  </ScrollLink>
+                  {/* <a
+                    href="#about"
+                    className="text-md font-medium text-gray-300 hover:text-white"
+                  >
+                    About
+                  </a>
+                  <a
+                    href="#pricing"
+                    className="text-md font-medium text-gray-300 hover:text-white"
+                  >
+                    Pricing
+                  </a> */}
+                  <ScrollLink to="contact" smooth={true} duration={500} className="text-md font-medium text-gray-300 hover:text-white">
+                  Contact
+                  </ScrollLink>
+                </nav>
+              </div>
+              {/* Action Buttons */}
+              <div className="flex space-x-10 items-center px-8">
                 <Link
                   to="/login"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 font-semibold leading-6 text-gray-800 hover:border-gray-300 hover:text-gray-900 hover:shadow-sm focus:ring focus:ring-gray-300/25 active:border-gray-200 active:shadow-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:text-gray-200 dark:focus:ring-gray-600/40"
+                  className="text-md font-medium text-white hover:text-gray-300"
                 >
                   Login
                 </Link>
                 <Link
                   to="/signup"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#f7971e] bg-[#f7971e] px-4 py-2 font-semibold leading-6 text-white hover:border-[#ffd200] hover:bg-[#ffd200] hover:text-white focus:ring focus:ring-[#ffd200]/50 active:border-[#f7971e] active:bg-[#f7971e] dark:focus:ring-[#ffd200]/90"
+                  className="inline-flex items-center justify-center rounded-full bg-white px-4 py-1.5 text-md font-medium text-black hover:bg-gray-200"
                 >
-                  Get Hive Free
+                  Try It Free
                 </Link>
-              </div>
-            </div>
-          </div>
-          {/* END Main Header Content */}
-        </header>
-        {/* END Main Header */}
 
-        {/* Hero Content */}
-        <div className="container relative mx-auto px-4 py-16 lg:px-8 lg:py-32 xl:max-w-6xl">
-          <div className="grid grid-cols-1 items-center gap-16 text-center md:grid-cols-12 md:text-left">
-            <div className="md:col-span-7">
-              <div>
-                <h1 className="mb-4 text-4xl font-black text-black lg:text-5xl dark:text-white">
-                  Spelling made simple with
-                  <span className="mx-2 bg-gradient-to-b from-[#FFC801] via-yellow-400 to-yellow-600 bg-clip-text text-transparent">
-                    Hive
-                  </span>
-                </h1>
-                <h2 className="text-lg/relaxed font-medium text-gray-700 lg:text-xl/relaxed dark:text-gray-300">
-                  Your ultimate companion for mastering spelling. With 2000 words, 12+ lessons in 8 languages, and 24 quizzes by a Scripps finalist, Hive empowers students with intuitive spelling skills.
-                </h2>
               </div>
             </div>
-            <div className="group relative flex items-center justify-center md:col-span-5 md:justify-end">
-              <div className="absolute inset-0 rotate-45 rounded-full bg-gradient-to-b from-[#FFC801] via-yellow-400 to-yellow-600 opacity-30 blur-3xl transition group-hover:scale-95" />
-              <div className="relative w-full max-w-80 origin-bottom rounded-2xl bg-white/50 p-2.5 shadow-xl shadow-teal-300/10 backdrop-blur-sm transition duration-300 group-hover:rotate-3 group-hover:scale-105 dark:bg-black/20">
+          </header>
+
+          {/* Hero Section */}
+          <div className="container relative mx-auto px-0 py-10 lg:px-0 lg:py-5 text-center">
+            {/* Light Overlay Box */}
+            <div
+              className="relative mx-auto rounded-2xl p-10 shadow-lg backdrop-blur-md overflow-hidden"
+              style={{
+                backgroundColor: '#121920',
+                maxWidth: 'calc(100% - 64px)',
+                height: '1225px'
+              }}
+            >
+
+              <p className="mb-4 mt-4 inline-block rounded-full bg-gray-700 px-4 py-4 text-sm font-medium text-gray-300">
+                Conquer spelling with Hive!
+              </p>
+              <h1 className="mb-4 mt-6 text-4xl font-bold text-white max-w-2xl mx-auto sm:text-5xl">
+                Learn to Spell
+                <span className="italic text-[#ffa500]"> Intelligently </span>
+              </h1>
+              <h1 className="mb-10 mt-0 text-4xl font-bold text-white max-w-2xl mx-auto sm:text-5xl">
+                with Hive
+              </h1>
+              <p className="mb-4 text-lg text-gray-400 max-w-3xl mx-auto">
+                 Made by a 2022 National Spelling Bee Finalist for future champions. Master spelling with 3000+ practice words, 12+ lessons in 8 languages, 24 quizzes, and daily tips.
+              </p>
+
+              <a href="https://apps.apple.com/us/app/hive-spell-intelligently/id6479415050" target="_blank" rel="noopener noreferrer">
+                <button className="mt-10 mb-5 inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-md font-medium text-black hover:bg-gray-200">
+                  <span className="mr-2"></span> Download for iOS
+                </button>
+              </a>
+
+
+
+              {/* Images Section */}
+              <div className="relative mt-24 flex justify-center items-center">
+                {/* Left Diagonal Image */}
                 <img
-                  src={homeImage}
-                  alt="Promo hero"
-                  className="w-full rounded-xl"
+                  src={homeImage2}
+                  alt="Lesson preview left"
+                  className="absolute left-[30px] transform scale-125 rotate-[-10deg] z-0"
+                  style={{ width: '420px', top: '80px' }}
+                />
+                {/* Center Image */}
+                <img
+                  src={homeImage1}
+                  alt="Lesson preview center"
+                  className="relative z-20 transform scale-125"
+                  style={{ width: '420px' }}
+                />
+                {/* Right Diagonal Image */}
+                <img
+                  src={homeImage3}
+                  alt="Lesson preview right"
+                  className="absolute right-[30px] transform scale-125 rotate-[10deg] z-10"
+                  style={{ width: '420px', top: '80px' }}
                 />
               </div>
             </div>
           </div>
         </div>
-        {/* END Hero Content */}
-      </div>
-      {/* END Hero Section: Image Side with Gradient */}
-    </>
-  );
-}
+      </>
+    );
+  }

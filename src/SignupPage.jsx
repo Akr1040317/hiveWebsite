@@ -67,7 +67,7 @@ export default function SignupPage() {
 
   return (
     <div className="login-page-container">
-      <img src="src/assets/IconResized.png" alt="Hive Logo" className="login-logo" />
+      <img src="IconResized.png" alt="Hive Logo" className="login-logo" />
       <h2 className="login-title">Sign up to Hive</h2>
 
       <div className="login-card">
