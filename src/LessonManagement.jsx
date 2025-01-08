@@ -41,6 +41,7 @@ const LessonManagement = () => {
   const [duration, setDuration] = useState('');
   const [difficulty, setDifficulty] = useState('');
   const [introduction, setIntroduction] = useState('');
+  const [patternsTitle, setPatternsTitle] = useState('');
   const [patterns, setPatterns] = useState([{ bullet: '•', text: '' }]);
   const [miniLessonTitle, setMiniLessonTitle] = useState('');
   const [miniLessons, setMiniLessons] = useState([{ text: '' }]);
@@ -311,6 +312,7 @@ const populateForm = (lesson) => {
   setNextLesson(lesson.nextLesson || '');
   setCategory(lesson.category || '');
   setOldCategory(lesson.category || ''); // Track old category
+  setPatternsTitle(lesson.patternsTitle || '');
 };
 
 
@@ -437,6 +439,7 @@ const populateForm = (lesson) => {
       duration,
       difficulty,
       introduction,
+      patternsTitle,   
       patterns: processedPatterns,
       miniLessonTitle: miniLessonTitle.trim() === '' ? null : miniLessonTitle,
       miniLesson: processedMiniLessons,
@@ -1426,9 +1429,26 @@ const populateForm = (lesson) => {
                 ></textarea>
               </div>
 
+              {/* Patterns Title (optional or required, your choice) */}
+              <div className="mb-4">
+                <label className="block text-gray-300 mb-2">
+                  Patterns Title:
+                </label>
+                <textarea
+                  type="text"
+                  className="w-full p-2 rounded bg-[#333333] text-white focus:outline-none resize-none overflow-hidden"
+                  placeholder='e.g., "Patterns", "Exercises", "Key Points", etc.'
+                  value={patternsTitle}
+                  onChange={(e) => setPatternsTitle(e.target.value)}
+                  rows={1}
+                />
+              </div>
+
               {/* Patterns */}
               <div className="mb-4">
-                <label className="block text-gray-300 mb-2">Patterns:</label>
+              <label className="block text-gray-300 mb-2">
+                {patternsTitle ? patternsTitle : 'Patterns'}:
+              </label>
                 {patterns.map((pattern, index) => (
                   <div key={index} className="flex items-center mb-2">
                     {/* Static Bullet Point Symbol */}

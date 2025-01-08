@@ -38,7 +38,7 @@ export default function SignupPage() {
         id: userCredential.user.uid,
         fullname,
         email,
-        role: "userTier1",
+        role: "userTier0",
         username,
         pointsWeekly: 0,
         pointsTotal: 0,

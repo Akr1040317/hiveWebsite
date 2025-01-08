@@ -14,7 +14,7 @@ export default function Lessons() {
   const [categories, setCategories] = useState([]);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [userRole, setUserRole] = useState('usertier1'); // Default role
+  const [userRole, setUserRole] = useState('usertier0'); // Default role
   const [username, setUsername] = useState('Guest');
   const [points, setPoints] = useState(0); // If you want to display points
   const navigate = useNavigate();
