@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { auth, db } from "./firebaseConfig";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth"; // Import signOut
 import { useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import "./LoginPage.css"; // Import a CSS file for custom styles
 import { FaEye, FaEyeSlash } from "react-icons/fa"; // Import eye icons from react-icons
-
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -37,6 +36,11 @@ export default function LoginPage() {
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
+        if (userData.role !== "admin") {
+          // If the user is not an admin, sign them out and show an error
+          await signOut(auth);
+          throw new Error("Access denied. You do not have admin privileges.");
+        }
         setUsername(userData.username);
       } else {
         throw new Error("User data not found.");
@@ -88,6 +92,7 @@ export default function LoginPage() {
         </div>
 
         {showAlert && <div className="alert error-alert">{errorMessage}</div>}
+        {showSuccessAlert && <div className="alert success-alert">Login successful! Redirecting...</div>}
 
         <div className="button-group">
           <button className="sign-in-button" onClick={handleSignIn}>
