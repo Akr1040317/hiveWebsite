@@ -112,6 +112,10 @@ export default function LoginPage() {
             Forgot Password?
           </button>
         </div>
+
+        <div className="button-group">
+        
+      </div>
       </div>
     </div>
   );

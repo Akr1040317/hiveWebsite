@@ -9,6 +9,8 @@ import PrivacyPolicy from "./privacyPolicy/page"; // Import the PrivacyPolicy co
 import LoginPage from "./LoginPage"; // Import the LoginPage component
 import SignupPage from "./SignupPage"; // Import the SignupPage component
 import Dashboard from "./Dashboard"; // Import the Dashboard component
+import LeaderboardPage from "./LeaderboardPage";
+import HeroRedirectPage from "./HeroRedirectPage";
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; // Import Routes and Route
 // In your main index.js or App.js
 import "slick-carousel/slick/slick.css";
@@ -32,6 +34,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <Route path="/signup" element={<SignupPage />} /> {/* Add Signup Page Route */}
       <Route path="/dashboard" element={<Dashboard />} /> {/* Add Dashboard Page Route */}
       <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
+      <Route path="/leaderboard" element={<LeaderboardPage />} />
+      <Route path="/redirect" element={<HeroRedirectPage />} />
     </Routes>
   </Router>,
 );

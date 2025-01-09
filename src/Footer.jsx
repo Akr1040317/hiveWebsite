@@ -1,8 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 
 export default function FootersSimple() {
+  const navigate = useNavigate();
   return (
+    
     <>
       {/* Footer Section: Simple (Updated) */}
       <footer id="page-footer" className="bg-[#071017] text-white">
@@ -23,6 +26,12 @@ export default function FootersSimple() {
           <div className="text-gray-400">
             <span className="font-medium">Hive - Spell Intelligently</span>
           </div>
+          <button 
+          className="leaderboard-button"
+          onClick={() => navigate("/leaderboard")}
+        >
+          View Leaderboard
+        </button>
         </div>
       </footer>
       {/* END Footer Section: Simple */}
