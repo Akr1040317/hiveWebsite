@@ -133,7 +133,7 @@ export default function LeaderboardPage() {
 
         // Determine the maximum number of clicks to set Y-axis domain
         const maxClicks = sortedData.length > 0 ? sortedData[0].clicks : 0;
-        setYAxisMax(maxClicks * 5 > 0 ? maxClicks * 5 : 100); // Ensure a minimum value
+        setYAxisMax(maxClicks * 5 > 0 ? maxClicks * 1.5 : 100); // Ensure a minimum value
 
         setLeaderboard(sortedData);
         setLoading(false);
@@ -242,8 +242,8 @@ export default function LeaderboardPage() {
               <Bar
                 dataKey="clicks"
                 animationDuration={1500}
-                barSize={30} // Adjust bar thickness
-                barGap={15}  // Space between bars
+                barSize={20} // Adjust bar thickness
+                barGap={10}  // Space between bars
               >
                 {leaderboard.map((entry, index) => (
                   <Cell
