@@ -26,12 +26,6 @@ export default function FootersSimple() {
           <div className="text-gray-400">
             <span className="font-medium">Hive - Spell Intelligently</span>
           </div>
-          <button 
-          className="leaderboard-button"
-          onClick={() => navigate("/leaderboard")}
-        >
-          View Leaderboard
-        </button>
         </div>
       </footer>
       {/* END Footer Section: Simple */}
