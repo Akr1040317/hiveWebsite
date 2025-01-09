@@ -167,7 +167,7 @@ export default function LeaderboardPage() {
           Welcome to the leaderboard challenge! 🎉 I've given each of you
           a customized link, and when someone clicks on your link, it counts as
           a hit. The top two people with the most hits will win a gift card! 🎁 The deadline 
-          for this challenge is January 24, abt 2 weeks from now. 
+          for this challenge is January 31, abt 3 weeks from now. 
         </h1>
         <h1 style={{ textAlign: "center", paddingBottom:30, paddingTop: 30, paddingInline: 300, fontSize:20}}>
           This is just a fun way for me to market my app and see how many people
