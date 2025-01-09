@@ -172,7 +172,7 @@ export default function LeaderboardPage() {
         <h1 style={{ textAlign: "center", paddingBottom:30, paddingTop: 30, paddingInline: 300, fontSize:20}}>
           This is just a fun way for me to market my app and see how many people
           are engaging with the website. 🚀 Only one rule: <strong>no cheating</strong>! 
-          Good luck! 😊
+          Good luck! P.S. Me & my brother cannot win.😊
         </h1>
       <ToggleContainer>
         <ToggleButton
