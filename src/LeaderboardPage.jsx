@@ -126,7 +126,9 @@ export default function LeaderboardPage() {
             username: username || item.id, // Fallback to ID if username is missing
             clicks: count, // Number of clicks in the selected view
           };
-        });
+        })
+        .filter((entry) => entry.username !== "SchoolBee"); // Filter out "SchoolBee"
+
 
         // Sort the processed data by clicks descending
         const sortedData = processedData.sort((a, b) => b.clicks - a.clicks);
