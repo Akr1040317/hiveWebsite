@@ -8,7 +8,7 @@ export default function FootersSimple() {
     
     <>
       {/* Footer Section: Simple (Updated) */}
-      <footer id="page-footer" className="bg-[#071017] text-white">
+      <footer id="page-footer" className="bg-[#000000] text-white">
         <div className="container mx-auto flex flex-col gap-6 px-4 py-16 text-center text-sm sm:flex-row-reverse sm:justify-between sm:gap-0 sm:text-left lg:px-8 lg:py-32 xl:max-w-7xl">
           <nav className="space-x-2 sm:space-x-4">
             <a

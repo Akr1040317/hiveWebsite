@@ -24,8 +24,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <Route path="/" element={
         <>
           <Hero />
-          <Features />
-          <CTA />
           <Contact />
           <Footer />
         </>

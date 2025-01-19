@@ -2,7 +2,7 @@ export default function Features() {
   return (
     <>
       {/* Features Section: Card Links */}
-      <div id="features" className="overflow-hidden" style={{ backgroundColor: '#071017' }}>
+      <div id="features" className="overflow-hidden" style={{ backgroundColor: '#000000' }}>
         <div className="container mx-auto space-y-16 px-4 py-16 lg:px-8 lg:py-32 xl:max-w-7xl">
           {/* Heading */}
           <div className="text-center">

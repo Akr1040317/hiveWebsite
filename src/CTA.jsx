@@ -2,7 +2,7 @@ export default function CTA() {
   return (
     <>
       {/* CTA Section: Similar to Partners' styling */}
-      <div className="bg-[#071017] dark:text-gray-100">
+      <div className="bg-[#000000] dark:text-gray-100">
         <div className="container mx-auto px-4 py-16 lg:px-8 lg:py-32 xl:max-w-7xl">
           {/* Heading */}
           <div className="text-center">
