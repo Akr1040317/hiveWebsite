@@ -15,6 +15,7 @@ import phone4 from './assets/phone4.png';
 import phone5 from './assets/phone5.png';
 import phone6 from './assets/phone6.png';
 
+
 export default function Hero() {
   // 6 separate items for the HERO section to animate in order
   const [showItem1, setShowItem1] = useState(false);
@@ -102,7 +103,6 @@ export default function Hero() {
             </a>
             <nav className="hidden md:flex items-center space-x-8">
               <Link
-                to="home"
                 smooth={true}
                 duration={500}
                 className="text-md font-medium text-[#ffa500] hover:text-white"
@@ -113,15 +113,31 @@ export default function Hero() {
                 to="features"
                 smooth={true}
                 duration={500}
-                className="text-md font-medium text-gray-300 hover:text-white"
+                className="text-md font-medium text-gray-300 hover:text-white cursor-pointer"
               >
                 Features
+              </ScrollLink>
+              <ScrollLink
+                to="pricing"
+                smooth={true}
+                duration={500}
+                className="text-md font-medium text-gray-300 hover:text-white cursor-pointer"
+              >
+                Pricing
+              </ScrollLink>
+              <ScrollLink
+                to="faq"
+                smooth={true}
+                duration={500}
+                className="text-md font-medium text-gray-300 hover:text-white cursor-pointer"
+              >
+                FAQ
               </ScrollLink>
               <ScrollLink
                 to="contact"
                 smooth={true}
                 duration={500}
-                className="text-md font-medium text-gray-300 hover:text-white"
+                className="text-md font-medium text-gray-300 hover:text-white cursor-pointer"
               >
                 Contact
               </ScrollLink>

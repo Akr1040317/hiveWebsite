@@ -94,7 +94,7 @@ const Contact = () => {
   };
 
   return (
-    <div className="bg-black text-white flex flex-col md:flex-row justify-between items-start md:items-center min-h-screen px-4 sm:px-6 md:px-16 py-12 overflow-x-hidden">
+    <div id="contact" className="bg-black text-white flex flex-col md:flex-row justify-between items-start md:items-center min-h-screen px-4 sm:px-6 md:px-16 py-12 overflow-x-hidden">
       {/* Left Section */}
       <div className="flex-1 text-left space-y-6">
         <h1 className="text-4xl font-bold">Contact Us</h1>
