@@ -6,6 +6,7 @@ import CTA from "./CTA";
 import Contact from "./Contact";
 import Footer from "./Footer";
 import PricingSection from './PricingSection';
+import FaqSection from './FaqSection';
 import PrivacyPolicy from "./privacyPolicy/page"; // Import the PrivacyPolicy component
 import LoginPage from "./LoginPage"; // Import the LoginPage component
 import SignupPage from "./SignupPage"; // Import the SignupPage component
@@ -26,6 +27,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <>
           <Hero />
           <PricingSection />
+          <FaqSection />
           <Contact />
           <Footer />
         </>

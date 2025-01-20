@@ -24,6 +24,32 @@ export default function Hero() {
   const [showItem5, setShowItem5] = useState(false);
   const [showItem6, setShowItem6] = useState(false);
 
+  const [headlineIndex, setHeadlineIndex] = useState(0);
+  const headlines = [
+    <>
+      Learn to Spell <span className="italic text-[#ffa500]">Intelligently</span> <br></br>with Hive
+    </>,
+    <>Limited time offer till January 30th. <br></br><span className="italic text-[#ffa500]">50% off</span> all plans.</>
+  ];
+
+  useEffect(() => {
+    // Existing staggered animations
+    setTimeout(() => setShowItem1(true), 500);
+    setTimeout(() => setShowItem2(true), 800);
+    setTimeout(() => setShowItem3(true), 1100);
+    setTimeout(() => setShowItem4(true), 1400);
+    setTimeout(() => setShowItem5(true), 1700);
+    setTimeout(() => setShowItem6(true), 2000);
+  
+    // Headline switching interval
+    const headlineInterval = setInterval(() => {
+      setHeadlineIndex((prevIndex) => (prevIndex === 0 ? 1 : 0));
+    }, 5000); // Change every 5 seconds
+  
+    // Cleanup interval on component unmount
+    return () => clearInterval(headlineInterval);
+  }, []);
+
   useEffect(() => {
     // Stagger each item
     setTimeout(() => setShowItem1(true), 500);
@@ -147,26 +173,30 @@ export default function Hero() {
               Conquer spelling with Hive!
             </p>
 
-            {/* #2: Headline */}
-            <h1
-              className={`
-                mb-4 mt-6 text-4xl font-bold text-white max-w-2xl mx-auto sm:text-5xl
-                ${showItem2 ? 'opacity-100' : 'opacity-0'}
-                transition-opacity duration-500 ease-in-out
-              `}
-            >
-              Learn to Spell
-              <span className="italic text-[#ffa500]"> Intelligently </span>
-            </h1>
-            <h1
-              className={`
-                mb-10 text-4xl font-bold text-white max-w-2xl mx-auto sm:text-5xl
-                ${showItem2 ? 'opacity-100' : 'opacity-0'}
-                transition-opacity duration-500 ease-in-out
-              `}
-            >
-              with Hive
-            </h1>
+            {/* #2: Alternating Headline */}
+<div
+  className={`
+    relative mx-auto text-center my-10
+    ${showItem2 ? 'opacity-100' : 'opacity-0'}
+    transition-opacity duration-500 ease-in-out
+  `}
+>
+  <div className="relative h-20">
+    {headlines.map((headline, index) => (
+      <h1
+        key={index}
+        className={`
+          absolute top-0 left-0 w-full text-4xl font-bold text-white sm:text-5xl
+          transition-opacity duration-1000
+          ${headlineIndex === index ? 'opacity-100' : 'opacity-0'}
+        `}
+      >
+        {headline}
+      </h1>
+    ))}
+  </div>
+</div>
+
 
             {/* #3: Paragraph text */}
             <p

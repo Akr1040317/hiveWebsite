@@ -1,3 +1,41 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ---- Add this to your global stylesheet or Tailwind CSS config (under theme.extend.keyframes, etc.) ---- */
+
+/* 1) plus -> X */
+@keyframes spinPlusToX {
+    0% {
+      transform: rotate(0deg);
+    }
+    70% {
+      transform: rotate(360deg); /* fast spin up to 360 degrees */
+    }
+    100% {
+      transform: rotate(405deg); /* +45 degrees to settle into the X */
+    }
+  }
+  
+  /* 2) X -> plus */
+  @keyframes spinXToPlus {
+    0% {
+      transform: rotate(405deg);
+    }
+    70% {
+      transform: rotate(45deg); /* quickly spin back through 360 degrees */
+    }
+    100% {
+      transform: rotate(0deg);
+    }
+  }
+  
+  /* Now define utility classes for each animation */
+  .animate-plusToX {
+    animation: spinPlusToX 0.5s ease-out forwards;
+  }
+  
+  .animate-xToPlus {
+    animation: spinXToPlus 0.5s ease-out forwards;
+  }
+  
