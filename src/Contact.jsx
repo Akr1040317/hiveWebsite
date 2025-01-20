@@ -94,7 +94,7 @@ const Contact = () => {
   };
 
   return (
-    <div className="bg-black text-white flex flex-col md:flex-row justify-between items-center min-h-screen px-6 md:px-16 py-12">
+    <div className="bg-black text-white flex flex-col md:flex-row justify-between items-start md:items-center min-h-screen px-4 sm:px-6 md:px-16 py-12 overflow-x-hidden">
       {/* Left Section */}
       <div className="flex-1 text-left space-y-6">
         <h1 className="text-4xl font-bold">Contact Us</h1>
@@ -179,12 +179,12 @@ const Contact = () => {
         <img
           src={contact}
           alt="Contact Illustration"
-          className=" hidden sm:block hidden md:block w-full max-w-sm rounded-2xl h-100 object-cover"
+          className="w-full max-w-sm rounded-2xl h-100 object-cover hidden sm:block"
         />
       </div>
 
       {/* Right Section (Contact Form) */}
-      <div className="flex-1 bg-black p-6 rounded-lg">
+      <div className="flex-1 bg-black p-6 rounded-lg max-w-full">
         {/* Toggle */}
         <div className="mb-6 flex justify-center">
           <div className="relative inline-flex bg-gray-700 rounded-full p-3">
@@ -199,7 +199,7 @@ const Contact = () => {
             {/* Toggle Buttons */}
             <button
               onClick={() => handleToggle('student')}
-              className={`relative z-10 text-md px-8 py-3 rounded-full ${
+              className={`relative z-10 text-sm px-2 sm:px-2 py-3 rounded-full ${
                 formType === 'student' ? 'text-black font-medium' : 'text-gray-300'
               }`}
             >
@@ -207,7 +207,7 @@ const Contact = () => {
             </button>
             <button
               onClick={() => handleToggle('teacher')}
-              className={`relative z-10 text-md px-8 py-3 rounded-full ${
+              className={`relative z-10 text-sm px-2 sm:px-2 py-3 rounded-full ${
                 formType === 'teacher' ? 'text-black font-medium' : 'text-gray-300'
               }`}
             >
@@ -304,21 +304,21 @@ const Contact = () => {
             </div>
           </div>
 
-          {/* Email & Phone Number */}
-            <div className="block text-sm font-medium text-gray-400">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-400">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                placeholder="Your Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-gray-800 text-white rounded-md border border-gray-600 p-3"
-                required
-              />
-            </div>
+          {/* Email */}
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-400">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              placeholder="Your Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-gray-800 text-white rounded-md border border-gray-600 p-3"
+              required
+            />
+          </div>
 
           {/* Message */}
           <div>
