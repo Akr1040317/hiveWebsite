@@ -203,7 +203,7 @@ const Contact = () => {
                 formType === 'student' ? 'text-black font-medium' : 'text-gray-300'
               }`}
             >
-              Student/Parent
+              Students
             </button>
             <button
               onClick={() => handleToggle('teacher')}

@@ -181,7 +181,7 @@ export default function Hero() {
             {/* #1: "Conquer spelling with Hive!" */}
             <p
               className={`
-                mb-4 mt-4 inline-block rounded-full bg-gray-700 px-4 py-3 text-sm font-medium text-gray-300
+                mb-2 mt-2 inline-block rounded-full bg-gray-700 px-4 py-3 text-sm font-medium text-gray-300
                 ${showItem1 ? 'opacity-100' : 'opacity-0'}
                 transition-opacity duration-500 ease-in-out
               `}
@@ -190,34 +190,34 @@ export default function Hero() {
             </p>
 
             {/* #2: Alternating Headline */}
-<div
-  className={`
-    relative mx-auto text-center my-10
-    ${showItem2 ? 'opacity-100' : 'opacity-0'}
-    transition-opacity duration-500 ease-in-out
-  `}
->
-  <div className="relative h-20">
-    {headlines.map((headline, index) => (
-      <h1
-        key={index}
-        className={`
-          absolute top-0 left-0 w-full text-4xl font-bold text-white sm:text-5xl
-          transition-opacity duration-1000
-          ${headlineIndex === index ? 'opacity-100' : 'opacity-0'}
-        `}
-      >
-        {headline}
-      </h1>
-    ))}
-  </div>
-</div>
-
+            <div
+              className={`
+                relative mx-auto text-center my-6
+                transition-opacity duration-500 ease-in-out
+              `}
+            >
+              {/* Container with fixed height to prevent layout shifts */}
+              <div className="relative h-24 sm:h-28 md:h-32 lg:h-40">
+                {headlines.map((headline, index) => (
+                  <h1
+                    key={index}
+                    className={`
+                      absolute top-0 left-0 w-full transition-opacity duration-1000
+                      ${headlineIndex === index ? 'opacity-100' : 'opacity-0'}
+                      text-2xl sm:text-1xl md:text-5xl lg:text-5xl font-bold text-white
+                      leading-tight mt-5
+                    `}
+                  >
+                    {headline}
+                  </h1>
+                ))}
+              </div>
+            </div>
 
             {/* #3: Paragraph text */}
             <p
               className={`
-                mb-4 text-lg text-gray-400 max-w-3xl mx-auto
+                mb-2 text-lg text-gray-400 max-w-3xl mx-auto
                 ${showItem3 ? 'opacity-100' : 'opacity-0'}
                 transition-opacity duration-500 ease-in-out
               `}
@@ -254,7 +254,8 @@ export default function Hero() {
                   hidden sm:block absolute left-[30px] transform scale-125 rotate-[-10deg] z-0
                   ${showItem6 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}
                   transition-transform transition-opacity duration-500 ease-in-out
-                  w-3/4 sm:w-2/3 md:w-1/2 lg:w-1/3 transform sm:scale-100 md:scale-110 lg:scale-150
+                  w-3/4 sm:w-2/3 md:w-1/2 lg:w-1/3
+                  lg:scale-150
                 `}
                 style={{ top: '80px' }}
               />
@@ -267,7 +268,8 @@ export default function Hero() {
                   relative z-20 transform scale-125
                   ${showItem5 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}
                   transition-transform transition-opacity duration-500 ease-in-out
-                  w-7/8 sm:w-2/3 md:w-1/2 lg:w-1/3 sm:scale-150 md:scale-110 lg:scale-150
+                  w-7/8 sm:w-2/3 md:w-1/2 lg:w-1/3
+                  sm:scale-150 md:scale-110 lg:scale-150
                 `}
               />
 
@@ -279,7 +281,8 @@ export default function Hero() {
                   hidden sm:block absolute right-[30px] transform scale-125 rotate-[10deg] z-10
                   ${showItem6 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}
                   transition-transform transition-opacity duration-500 ease-in-out
-                  w-3/4 sm:w-2/3 md:w-1/2 lg:w-1/3 transform sm:scale-100 md:scale-110 lg:scale-150
+                  w-3/4 sm:w-2/3 md:w-1/2 lg:w-1/3
+                  lg:scale-150
                 `}
                 style={{ top: '80px' }}
               />

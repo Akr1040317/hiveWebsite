@@ -226,22 +226,23 @@ export default function FaqSection() {
 
       {/* Smooth accordion: using max-height + overflow-hidden + transition */}
       <div
-        className={`
-          mt-4 text-gray-300 overflow-hidden
-          transition-[max-height] duration-500 ease-in-out
-          ${isOpen ? 'max-h-96' : 'max-h-0'}
-        `}
-      >
-        {Array.isArray(faq.answer) ? (
-          <ul className="list-disc pl-6 space-y-2">
-            {faq.answer.map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="leading-relaxed">{faq.answer}</p>
-        )}
-      </div>
+  className={`
+    mt-4 text-gray-300 overflow-hidden
+    transition-[max-height] duration-500 ease-in-out
+    ${isOpen ? 'max-h-[500px] sm:max-h-96' : 'max-h-0'}
+  `}
+>
+  {Array.isArray(faq.answer) ? (
+    <ul className="list-disc pl-6 space-y-2">
+      {faq.answer.map((item, index) => (
+        <li key={index}>{item}</li>
+      ))}
+    </ul>
+  ) : (
+    <p className="leading-relaxed">{faq.answer}</p>
+  )}
+</div>
+
     </div>
   );
 })}
