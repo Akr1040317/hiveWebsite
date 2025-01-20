@@ -211,7 +211,7 @@ const Contact = () => {
                 formType === 'teacher' ? 'text-black font-medium' : 'text-gray-300'
               }`}
             >
-              Teacher/Organization
+              Educators
             </button>
           </div>
         </div>
