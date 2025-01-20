@@ -94,7 +94,19 @@ const Contact = () => {
   };
 
   return (
-    <div id="contact" className="bg-black text-white flex flex-col md:flex-row justify-between items-start md:items-center min-h-screen px-4 sm:px-6 md:px-16 py-12 overflow-x-hidden">
+    <div
+      id="contact"
+      className="
+        bg-black text-white 
+        flex flex-col md:flex-row 
+        justify-between 
+        items-center md:items-start 
+        min-h-screen 
+        px-4 sm:px-6 md:px-16 
+        py-12 
+        overflow-x-hidden
+      "
+    >
       {/* Left Section */}
       <div className="flex-1 text-left space-y-6">
         <h1 className="text-4xl font-bold">Contact Us</h1>
@@ -184,7 +196,15 @@ const Contact = () => {
       </div>
 
       {/* Right Section (Contact Form) */}
-      <div className="flex-1 bg-black p-6 rounded-lg max-w-full">
+      <div className="
+        flex-1 
+        bg-black 
+        p-6 
+        rounded-lg 
+        w-10/12 sm:w-4/5 md:w-auto 
+        mx-auto 
+        max-w-md
+      ">
         {/* Toggle */}
         <div className="mb-6 flex justify-center">
           <div className="relative inline-flex bg-gray-700 rounded-full p-3">
@@ -199,17 +219,19 @@ const Contact = () => {
             {/* Toggle Buttons */}
             <button
               onClick={() => handleToggle('student')}
-              className={`relative z-10 text-sm px-2 sm:px-2 py-3 rounded-full ${
-                formType === 'student' ? 'text-black font-medium' : 'text-gray-300'
-              }`}
+              className={`
+                relative z-10 text-sm px-2 sm:px-2 py-3 rounded-full 
+                ${formType === 'student' ? 'text-black font-medium' : 'text-gray-300'}
+              `}
             >
               Students
             </button>
             <button
               onClick={() => handleToggle('teacher')}
-              className={`relative z-10 text-sm px-2 sm:px-2 py-3 rounded-full ${
-                formType === 'teacher' ? 'text-black font-medium' : 'text-gray-300'
-              }`}
+              className={`
+                relative z-10 text-sm px-2 sm:px-2 py-3 rounded-full 
+                ${formType === 'teacher' ? 'text-black font-medium' : 'text-gray-300'}
+              `}
             >
               Educators
             </button>
@@ -237,7 +259,7 @@ const Contact = () => {
                 {/* School/Organization Name */}
                 <div>
                   <label htmlFor="organization-name" className="block text-sm font-medium text-gray-400">
-                    School/Organization Name
+                    School/Org Name
                   </label>
                   <input
                     id="organization-name"
@@ -340,7 +362,17 @@ const Contact = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-white text-black font-medium rounded-md py-3 hover:bg-gray-200 flex items-center justify-center disabled:opacity-50"
+              className="
+                w-full 
+                bg-white 
+                text-black 
+                font-medium 
+                rounded-md 
+                py-3 
+                hover:bg-gray-200 
+                flex items-center justify-center 
+                disabled:opacity-50
+              "
             >
               {isSubmitting ? 'Submitting...' : 'Submit'} <span className="ml-2">→</span>
             </button>
