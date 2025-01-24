@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Link as ScrollLink } from 'react-scroll';
 import { useInView } from 'react-intersection-observer';
 
-import homeImage1 from './assets/home1.jpeg';
+import homeImage1 from './assets/home1new.png';
 import homeImage2 from './assets/home2.png';
 import homeImage3 from './assets/home3.png';
 import appIconImage from './assets/app-icon.jpg';
