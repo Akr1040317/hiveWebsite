@@ -1,3 +1,4 @@
+// main.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
 import Hero from "./Hero";
@@ -13,6 +14,7 @@ import SignupPage from "./SignupPage"; // Import the SignupPage component
 import Dashboard from "./Dashboard"; // Import the Dashboard component
 import LeaderboardPage from "./LeaderboardPage";
 import HeroRedirectPage from "./HeroRedirectPage";
+import JoinOurTeam from "./JoinOurTeam"; // Import the new component
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; // Import Routes and Route
 // In your main index.js or App.js
 import "slick-carousel/slick/slick.css";
@@ -28,6 +30,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Hero />
           <PricingSection />
           <FaqSection />
+          <JoinOurTeam /> {/* Add the new section here */}
           <Contact />
           <Footer />
         </>
