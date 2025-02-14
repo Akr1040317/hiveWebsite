@@ -202,20 +202,9 @@ export default function Dashboard() {
                       onClick={() => setActiveView("tools")}
                     >
                       <FaHive className="icon" />
-                      <span className="grow py-2">The Hive</span>
-                    </a>
-                    <a
-                      href="#"
-                      className={`group flex items-center gap-2 rounded-lg px-2.5 text-sm font-medium ${
-                        activeView === "progress"
-                          ? "bg-[#303030] text-white"
-                          : "text-gray-300 hover:bg-[#ffa500]/10 hover:shadow-[0_0_10px_#ffa500]"
-                      }`}
-                      onClick={() => setActiveView("progress")}
-                    >
-                      <FaTools className="icon" />
                       <span className="grow py-2">Tools</span>
                     </a>
+                    
                   </>
                 ) : (
                   // Non-Admin Users with Tiers
