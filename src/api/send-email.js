@@ -9,7 +9,7 @@ dotenv.config();
 
 const app = express();
 
-// Update CORS to allow your production domain (or use a dynamic check)
+// For production, update CORS to allow your domain (or remove if using a wildcard during development)
 app.use(cors({ origin: 'https://www.hivespelling.com' }));
 app.use(bodyParser.json());
 
@@ -52,5 +52,5 @@ app.post('/send-email', async (req, res) => {
   }
 });
 
-// IMPORTANT: Do NOT call app.listen() – export the app for Vercel instead.
+// Do not call app.listen(); export the app for Vercel to use.
 export default app;
