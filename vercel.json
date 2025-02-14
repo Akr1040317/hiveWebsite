@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/send-email.js": {
-      "runtime": "nodejs18.x@latest"
-    }
-  },
   "rewrites": [
     { "source": "/send-email", "destination": "/api/send-email.js" }
   ]
