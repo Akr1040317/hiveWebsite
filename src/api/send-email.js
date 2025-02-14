@@ -9,8 +9,25 @@ dotenv.config();
 
 const app = express();
 
-// For production, update CORS to allow your domain (or remove if using a wildcard during development)
-app.use(cors({ origin: 'https://www.hivespelling.com' }));
+// Define allowed origins – update these as needed.
+const allowedOrigins = [
+  'https://www.hivespelling.com',
+  'https://hive-website-nx4hn0rqk-akr1040317s-projects.vercel.app'
+];
+
+// Configure CORS to allow requests from allowed origins.
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  }
+}));
+
 app.use(bodyParser.json());
 
 const SMTP_SERVER = 'smtp.gmail.com';
