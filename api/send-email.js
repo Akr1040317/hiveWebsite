@@ -9,23 +9,29 @@ dotenv.config();
 
 const app = express();
 
-// Define allowed origins
+// Define your fixed allowed origins
 const allowedOrigins = [
-  'https://www.hivespelling.com',
-  'https://hive-website-l2pxv3rjm-akr1040317s-projects.vercel.app'
+  'https://www.hivespelling.com'
 ];
 
-// Configure CORS to allow requests from allowed origins
+// Define a regular expression for allowed Vercel preview domains.
+// Adjust this regex as needed to match your preview domain pattern.
+const previewOriginRegex = /^https:\/\/hive-website-[\w-]+\.vercel\.app$/;
+
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
+      // Allow requests with no origin (like mobile apps or curl)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'), false);
-      }
+
+      // Allow if origin is explicitly allowed
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+
+      // Allow if origin matches the preview pattern
+      if (previewOriginRegex.test(origin)) return callback(null, true);
+
+      // Otherwise, reject
+      return callback(new Error('Not allowed by CORS'), false);
     },
   })
 );
@@ -33,7 +39,6 @@ app.use(
 // Handle preflight requests
 app.options('*', cors());
 
-// Use bodyParser to parse JSON bodies
 app.use(bodyParser.json());
 
 const SMTP_SERVER = 'smtp.gmail.com';
@@ -68,7 +73,7 @@ app.post('/send-email', async (req, res) => {
   try {
     let info = await transporter.sendMail(mailOptions);
     console.log("✅ Email sent successfully:", info.response);
-    // Set the CORS header on the response as a fallback
+    // Fallback: set the header if not already set
     res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
     res.json({ success: true, info });
   } catch (error) {
@@ -77,5 +82,5 @@ app.post('/send-email', async (req, res) => {
   }
 });
 
-// Export the app – do not call app.listen() in a Vercel function.
+// Export the app for Vercel (do not call app.listen())
 export default app;
