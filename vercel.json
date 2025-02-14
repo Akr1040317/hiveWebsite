@@ -1,5 +1,11 @@
+
 {
-  "rewrites":  [
-    {"source": "/(.*)", "destination": "/"}
+  "functions": {
+    "api/send-email.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "rewrites": [
+    { "source": "/send-email", "destination": "/api/send-email.js" }
   ]
 }

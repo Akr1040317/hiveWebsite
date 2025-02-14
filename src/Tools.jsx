@@ -78,7 +78,9 @@ const ProfileTool = () => (
 const sendEmailService = async (emailDraftData) => {
   console.log("Attempting to send email with data:", emailDraftData);
   try {
-    const response = await fetch("http://localhost:3001/send-email", {
+    // Use your production URL – assuming your site is hosted at https://www.hivespelling.com,
+    // the rewrite makes /send-email available.
+    const response = await fetch("https://www.hivespelling.com/send-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -99,6 +101,7 @@ const sendEmailService = async (emailDraftData) => {
     throw error;
   }
 };
+
 
 // -------------------------------------------------------------------
 // EmailDraftForm: Form to create, preview, save, and send an email draft
