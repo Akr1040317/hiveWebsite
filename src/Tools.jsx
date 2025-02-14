@@ -102,7 +102,6 @@ const sendEmailService = async (emailDraftData) => {
   }
 };
 
-
 // -------------------------------------------------------------------
 // EmailDraftForm: Form to create, preview, save, and send an email draft
 const EmailDraftForm = ({ onClose }) => {
@@ -222,12 +221,11 @@ const EmailDraftForm = ({ onClose }) => {
       setRecipientList(recipients);
     };
 
-    // Trigger fetch if criteria are valid
-    if (receiverFilterType === 'userTier' && receiverUserTier.trim() !== '') {
-      fetchRecipients();
-    } else if (receiverFilterType === 'createdAt' && receiverStartDate && receiverEndDate) {
-      fetchRecipients();
-    } else if (receiverFilterType === 'manual') {
+    if (
+      (receiverFilterType === 'userTier' && receiverUserTier.trim() !== '') ||
+      (receiverFilterType === 'createdAt' && receiverStartDate && receiverEndDate) ||
+      (receiverFilterType === 'manual')
+    ) {
       fetchRecipients();
     } else {
       setRecipientList([]);
@@ -266,7 +264,7 @@ const EmailDraftForm = ({ onClose }) => {
     setSaving(false);
   };
 
-  // Send email using the recipient list
+  // Send email individually to each recipient in the recipient list
   const sendEmail = async () => {
     if (!draftId) {
       await saveDraft();
@@ -276,13 +274,16 @@ const EmailDraftForm = ({ onClose }) => {
         alert("No recipients available to send email to.");
         return;
       }
-      const recipientArray = recipientList.map(r => r.email);
-      const recipient = recipientArray.join(",");
-      const emailDraftData = { emailName, subject, body, recipient };
-      console.log("Sending email for draft ID:", draftId);
-      const result = await sendEmailService(emailDraftData);
-      console.log("Email send result:", result);
+      // Send email separately for each recipient
+      const sendPromises = recipientList.map((r) => {
+        const emailDraftData = { emailName, subject, body, recipient: r.email };
+        console.log("Sending email for draft ID:", draftId, "to", r.email);
+        return sendEmailService(emailDraftData);
+      });
+      const results = await Promise.all(sendPromises);
+      console.log("Email send results:", results);
 
+      const recipientArray = recipientList.map(r => r.email);
       const emailDocRef = doc(db, 'emails', draftId);
       await updateDoc(emailDocRef, {
         emailStatus: 'sent',
@@ -290,7 +291,7 @@ const EmailDraftForm = ({ onClose }) => {
         sentTo: recipientArray,
       });
       console.log("Email document updated to sent. Recipients tracked:", recipientArray);
-      alert('Email sent successfully!');
+      alert('Emails sent successfully!');
     } catch (error) {
       console.error("Error sending email:", error);
       alert('Error sending email. Check console for details.');
@@ -449,8 +450,6 @@ const EmailDraftForm = ({ onClose }) => {
   );
 };
 
-// -------------------------------------------------------------------
-// Emails Component: Displays a sortable table of users plus the email draft UI
 const Emails = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
