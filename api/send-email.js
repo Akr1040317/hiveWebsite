@@ -9,25 +9,31 @@ dotenv.config();
 
 const app = express();
 
-// Define allowed origins – update these as needed.
+// Define allowed origins
 const allowedOrigins = [
   'https://www.hivespelling.com',
-  'https://hive-website-nx4hn0rqk-akr1040317s-projects.vercel.app'
+  'https://hive-website-l2pxv3rjm-akr1040317s-projects.vercel.app'
 ];
 
-// Configure CORS to allow requests from allowed origins.
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  }
-}));
+// Configure CORS to allow requests from allowed origins
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'), false);
+      }
+    },
+  })
+);
 
+// Handle preflight requests
+app.options('*', cors());
+
+// Use bodyParser to parse JSON bodies
 app.use(bodyParser.json());
 
 const SMTP_SERVER = 'smtp.gmail.com';
@@ -43,7 +49,7 @@ if (!PASSWORD) {
 const transporter = nodemailer.createTransport({
   host: SMTP_SERVER,
   port: SMTP_PORT,
-  secure: false,
+  secure: false, // Use TLS
   auth: {
     user: SENDER_EMAIL,
     pass: PASSWORD,
@@ -62,6 +68,8 @@ app.post('/send-email', async (req, res) => {
   try {
     let info = await transporter.sendMail(mailOptions);
     console.log("✅ Email sent successfully:", info.response);
+    // Set the CORS header on the response as a fallback
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
     res.json({ success: true, info });
   } catch (error) {
     console.error("❌ Error sending email:", error);
@@ -69,5 +77,5 @@ app.post('/send-email', async (req, res) => {
   }
 });
 
-// Do not call app.listen(); export the app for Vercel to use.
+// Export the app – do not call app.listen() in a Vercel function.
 export default app;
