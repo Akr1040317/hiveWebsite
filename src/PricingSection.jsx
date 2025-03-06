@@ -151,7 +151,7 @@ export default function PricingSection() {
             ${titleVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}
           `}
         >
-          50% OFF ALL PLANS UNTIL FEBRUARY 28<sup>th</sup> 🎉
+          50% OFF ALL PLANS UNTIL MARCH 31ST<sup>th</sup> 🎉
         </h2>
       </div>
 

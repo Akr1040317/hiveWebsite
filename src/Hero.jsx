@@ -30,7 +30,7 @@ export default function Hero() {
     <>
       Learn to Spell <span className="italic text-[#ffa500]">Intelligently</span> <br></br>with Hive
     </>,
-    <>Limited time offer till February 28th. <br></br><span className="italic text-[#ffa500]">50% off</span> all plans.</>
+    <>Limited time offer till March 31st. <br></br><span className="italic text-[#ffa500]">50% off</span> all plans.</>
   ];
 
   useEffect(() => {
