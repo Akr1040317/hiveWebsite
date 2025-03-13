@@ -36,11 +36,7 @@ export default function LoginPage() {
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
-        if (userData.role !== "admin") {
-          // If the user is not an admin, sign them out and show an error
-          await signOut(auth);
-          throw new Error("Access denied. You do not have admin privileges.");
-        }
+        
         setUsername(userData.username);
       } else {
         throw new Error("User data not found.");
